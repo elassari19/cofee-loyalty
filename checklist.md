@@ -32,12 +32,12 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 3. Product Design and Navigation
 
-- [ ] Define role-aware route groups for platform administrators, merchant owners/managers, staff, and customers.
-- [ ] Build responsive application shells and navigation using shadcn/ui; ensure keyboard access, focus states, labels, loading, empty, and error states.
-- [ ] Keep pages focused on operational tasks: dashboard, customers, loyalty program, transactions, rewards, campaigns, staff, analytics, and business settings.
-- [ ] Create shared form, table, dialog, toast, and confirmation patterns.
-- [ ] Ensure destructive or value-affecting operations require an explicit confirmation and give a clear result.
-- [ ] Do not rely on hidden navigation or frontend checks as authorization; protect every server operation independently.
+- [x] Define role-aware route groups for platform administrators, merchant owners/managers, staff, and customers.
+- [x] Build responsive application shells and navigation using shadcn/ui; ensure keyboard access, focus states, labels, loading, empty, and error states.
+- [x] Keep pages focused on operational tasks: dashboard, customers, loyalty program, transactions, rewards, campaigns, staff, analytics, and business settings.
+- [x] Create shared form, table, dialog, toast, and confirmation patterns.
+- [x] Ensure destructive or value-affecting operations require an explicit confirmation and give a clear result.
+- [x] Do not rely on hidden navigation or frontend checks as authorization; protect every server operation independently.
 
 **Done when:** Each role sees an appropriate usable interface, and restricted server routes remain inaccessible even when called directly.
 

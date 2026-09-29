@@ -46,6 +46,36 @@ Configuration is validated when the server boots: a missing or malformed variabl
 aborts startup with the full list of problems, so the first `pnpm dev` failure tells
 you exactly what to fix.
 
+## Application surfaces (checklist §3)
+
+Each audience has its own route group and shell; `src/auth/guard.ts` runs on every
+page **and** API route, so hidden navigation is never the authorization.
+
+| Audience         | Shell            | Routes                                                                                                                 |
+| ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Anyone           | Product landing  | `/`                                                                                                                    |
+| Anonymous        | Auth wall        | `/sign-in` (guards redirect here); denied roles land on `/403`                                                         |
+| Platform admin   | Administration   | `/admin`, `/admin/merchants`, `/admin/users`, `/admin/analytics`, `/admin/settings`                                    |
+| Merchant owner   | Merchant console | `/dashboard`, `/customers`, `/loyalty`, `/transactions`, `/rewards`, `/campaigns`, `/staff`, `/analytics`, `/settings` |
+| Merchant manager | Merchant console | same pages, business settings read-only, no destructive actions                                                        |
+| Staff / cashier  | Counter register | `/register`, `/register/customers`, `/register/rewards`, `/register/transactions`                                      |
+| Customer         | Customer portal  | `/me`, `/me/rewards`, `/me/offers`, `/me/activity`, `/me/profile`                                                      |
+
+- **Role preview (development only).** Until Better Auth lands in §5 there is no real
+  session: `POST /api/preview` (form-encoded `role=<ROLE>`) sets an httpOnly
+  `cofe_preview_role` cookie for 8 hours, honored only when `isPreviewEnabled()` —
+  production ignores the cookie and returns 404. The `/preview` page and the account
+  menu's "view as role" switch drive it, and server guards read the same context, so
+  what you preview is exactly what is enforced. Anonymous requests are rejected:
+  pages redirect to `/sign-in`, `/api/me` returns 401.
+- **Data is a process-local demo store** (`src/lib/demo-store.ts`). Mutations survive
+  while the dev server runs and reset on restart; PostgreSQL + TypeORM replaces it in
+  §4.
+- **Shared patterns** live in `src/components/patterns` (form, data-table, confirm,
+  states, filter-select, toast, status-badge) and `src/components/shell` (app shell,
+  side nav, mobile nav, user menu). Value-affecting actions go through an explicit
+  confirmation and report the result via toast.
+
 ## Scripts
 
 | Script                                               | Purpose                                                                                                                        |
@@ -218,10 +248,18 @@ cross-cutting concerns live in `src/lib`.
 ```text
 src/
   app/                  Routes: pages, layouts and API handlers (validate → authorize → delegate)
+    (platform)/         Platform administrator console — /admin (§3)
+    (merchant)/         Merchant owner/manager console (§3)
+    (staff)/            Counter register — /register (§3)
+    (customer)/         Customer portal — /me (§3)
     api/health/         Health endpoint (checklist §2)
+    api/preview/        Dev-only role preview cookie (checklist §3)
+    page.tsx            Product landing; plus sign-in and 403 shells
   auth/                 Roles, permissions, session and tenant guards (checklist §5)
   components/           UI components
     ui/                 shadcn/ui primitives
+    shell/              App shells and navigation (§3)
+    patterns/           Form, table, dialog, confirm, toast patterns (§3)
   db/                   Persistence (Node.js runtime only)
     connection.ts       Lazy runtime DataSource access (`getDb()`)
     data-source.ts      TypeORM DataSource used by CLI scripts
@@ -246,6 +284,8 @@ src/
     health.ts           Application / PostgreSQL / Redis checks
     redis.ts            Single Redis entry point (narrowly scoped)
     startup.ts          Node-only boot work: validate config, log, abort on error
+    demo-store.ts       Session-local demo data until PostgreSQL (§4)
+    actions.ts          Server actions shared by the §3 pages
   instrumentation.ts    Startup hook: runs `startup.ts` before serving traffic
   proxy.ts              Assigns and propagates the correlation id
 scripts/                CLI entry points (smoke, seed, maintenance)
