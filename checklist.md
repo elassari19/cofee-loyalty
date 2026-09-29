@@ -19,14 +19,14 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 2. Project Foundation and Local Services
 
-- [ ] Establish a maintainable feature-oriented structure for app routes, UI components, domain logic, persistence, authorization, integrations, and tests.
-- [ ] Add local PostgreSQL and Redis services using a documented Docker Compose configuration or equivalent developer setup.
-- [ ] Add health checks for the application, PostgreSQL, and Redis; fail clearly when required services are unavailable.
-- [ ] Add structured server logging with request/correlation IDs and redact passwords, tokens, redemption codes, and personal data.
-- [ ] Add centralized error handling that returns safe, consistent API errors without exposing stack traces or SQL details.
-- [ ] Add environment validation at startup and fail fast on missing or malformed required configuration.
-- [ ] Configure formatting, linting, TypeScript strictness, and CI checks.
-- [ ] Add a minimal automated smoke test for application startup and database connectivity.
+- [x] Establish a maintainable feature-oriented structure for app routes, UI components, domain logic, persistence, authorization, integrations, and tests.
+- [x] Add local PostgreSQL and Redis services using a documented Docker Compose configuration or equivalent developer setup.
+- [x] Add health checks for the application, PostgreSQL, and Redis; fail clearly when required services are unavailable.
+- [x] Add structured server logging with request/correlation IDs and redact passwords, tokens, redemption codes, and personal data.
+- [x] Add centralized error handling that returns safe, consistent API errors without exposing stack traces or SQL details.
+- [x] Add environment validation at startup and fail fast on missing or malformed required configuration.
+- [x] Configure formatting, linting, TypeScript strictness, and CI checks.
+- [x] Add a minimal automated smoke test for application startup and database connectivity.
 
 **Done when:** A new developer can follow the setup documentation to run the app and checks locally without undocumented manual steps.
 

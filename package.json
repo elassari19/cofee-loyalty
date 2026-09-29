@@ -23,6 +23,11 @@
     "db:migrate:generate": "node --env-file-if-exists=.env --import tsx ./node_modules/typeorm/cli.js migration:generate -d src/db/data-source.ts",
     "db:migrate:revert": "node --env-file-if-exists=.env --import tsx ./node_modules/typeorm/cli.js migration:revert -d src/db/data-source.ts",
     "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
+    "services:up": "docker compose up -d --wait",
+    "services:down": "docker compose down",
+    "services:logs": "docker compose logs -f --tail=200",
+    "services:reset": "docker compose down -v",
+    "smoke": "node --env-file-if-exists=.env --import tsx scripts/smoke.ts",
     "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {

@@ -1,0 +1,62 @@
+# Local development services (checklist §2).
+#
+#   pnpm services:up      # start PostgreSQL + Redis, wait until healthy
+#   pnpm services:logs    # follow logs
+#   pnpm services:down    # stop (data is kept in named volumes)
+#   pnpm services:reset   # stop AND delete the volumes (destroys local data)
+#
+# Ports default to 5433/6380 so they never collide with a system-wide
+# PostgreSQL/Redis on the standard ports. Override them in `.env`
+# (`POSTGRES_PORT`, `REDIS_PORT`) if you want the conventional ports instead;
+# keep `DATABASE_URL`/`REDIS_URL` in `.env` in sync with whatever you choose.
+#
+# These containers are for development only: no TLS, well-known credentials and
+# a single database. Production services are provisioned separately (§14).
+
+name: loyalty-saas
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: loyalty-saas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-loyalty_dev}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-loyalty_dev}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: loyalty-saas-redis
+    restart: unless-stopped
+    # Append-only file keeps state across restarts; fine for local cache/rate
+    # limits. Redis is never the system of record (§1).
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  postgres_data:
+  redis_data:

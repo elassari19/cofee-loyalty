@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { getLogger } from "./logger";
 
 /**
  * The single Redis entry point for the application.
@@ -32,10 +33,10 @@ export function getRedis(): Redis {
     maxRetriesPerRequest: 1,
   });
 
-  // Without a listener ioredis errors become uncaught exceptions. The logging
-  // pipeline lands in checklist §2; until then surface the failure plainly.
+  // Without a listener ioredis errors become uncaught exceptions. Callers must
+  // still treat Redis as optional and apply their safe fallback.
   client.on("error", (error: Error) => {
-    console.error(`[redis] ${error.message}`);
+    getLogger().error({ err: error }, "redis connection error");
   });
 
   return client;

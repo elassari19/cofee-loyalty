@@ -1,0 +1,99 @@
+# Continuous integration (checklist §2 — "Configure formatting, linting,
+# TypeScript strictness, and CI checks").
+#
+# Runs the same gate a developer runs locally (`pnpm validate`), plus a
+# production build and an application startup smoke test against real
+# PostgreSQL and Redis service containers.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Validate, build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Test/CI configuration only — never a production secret.
+    env:
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/loyalty_dev
+      REDIS_URL: redis://localhost:6380
+      BETTER_AUTH_SECRET: ci-only-secret-not-for-production-0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+      LOG_LEVEL: info
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: loyalty_dev
+        ports:
+          # Matches DATABASE_URL (and the docker-compose.yml defaults).
+          - "5433:5432"
+        options: >-
+          --health-cmd "pg_isready -U postgres -d loyalty_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          # Matches REDIS_URL (and the docker-compose.yml defaults).
+          - "6380:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from the `packageManager` field in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Apply database migrations
+        run: pnpm db:migrate
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Application startup smoke test
+        run: |
+          pnpm start > "$RUNNER_TEMP/next-start.log" 2>&1 &
+          if ! pnpm smoke -- --http; then
+            echo "--- next start output ---"
+            cat "$RUNNER_TEMP/next-start.log"
+            exit 1
+          fi
