@@ -17,6 +17,9 @@ record and needs no backup.
 | Table                 | Purpose                                                                                                                     | Tenant column                                 |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | `user`                | Platform identity (Better Auth). Platform `role`: `SUPER_ADMIN`/`MERCHANT`/`CUSTOMER`.                                      | — (platform)                                  |
+| `account`             | Credential row per identity: `provider_id` + scrypt `password` hash (Better Auth).                                          | — (platform)                                  |
+| `session`             | Server-side session state; `token` unique, `expires_at` enforced, `ON DELETE CASCADE` from `user`.                          | — (platform)                                  |
+| `verification`        | Single-use email-verification / password-reset tokens with `expires_at`.                                                    | — (platform)                                  |
 | `customer_profile`    | Customer-facing profile, one per `user`.                                                                                    | — (platform)                                  |
 | `merchant`            | Tenant record. `status`: trial/active/suspended.                                                                            | (is the tenant)                               |
 | `merchant_membership` | Platform user ↔ merchant membership with tenant role (owner/manager/staff).                                                 | `merchant_id`                                 |
@@ -37,6 +40,16 @@ platform-level and joins any number of merchants through separate
 `loyalty_membership` rows — balances never cross tenants. Cross-tenant writes
 are rejected by `appendLedgerEntry` (`ForbiddenError`) and, for the ledger,
 by the foreign-key graph.
+
+**Auth storage** (checklist §5, ADR 0001). Better Auth owns `account`,
+`session` and `verification` (migration `1790793203255-AddAuthTables`), shaped
+by `src/db/entities/auth-schemas.ts`. Sessions are stored in
+PostgreSQL with no cookie cache, so revocation — sign-out, password reset, a
+disabled account — takes effect on the next request. The browser only holds
+the _signed_ session cookie: role, memberships and the active tenant are read
+from `user` / `merchant_membership` on every request
+(`src/auth/session.ts`). Regenerating a diff must report no changes for these
+three tables.
 
 ## Balance strategy
 

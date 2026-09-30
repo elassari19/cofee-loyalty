@@ -23,6 +23,16 @@ const storage = new AsyncLocalStorage<Store>();
 
 export const REQUEST_ID_HEADER = "x-request-id";
 
+/**
+ * Path + query of the request currently being served, set by `src/proxy.ts`.
+ *
+ * Page guards use it to build the `/sign-in?next=…` link, so a visitor sent
+ * away for signing in comes back to the page they asked for. It is always
+ * overwritten by the proxy, and `safeNextPath` re-validates the value before
+ * anything redirects to it.
+ */
+export const PATHNAME_HEADER = "x-pathname";
+
 export function newRequestId(): string {
   return randomUUID();
 }

@@ -58,16 +58,16 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 5. Authentication, Permissions, and Tenant Isolation
 
-- [ ] Implement registration, login, logout, password reset, email verification, and secure session expiration/invalidation.
-- [ ] Hash passwords using the selected authentication library's supported secure algorithm; never log credentials or reset tokens.
-- [ ] Define roles and capability permissions for `SUPER_ADMIN`, merchant owner, manager, staff, and customer.
-- [ ] Implement reusable server-side authorization checks for permissions and resource ownership.
-- [ ] Derive active merchant/tenant context from the authenticated session and membership; do not trust a frontend-supplied merchant ID as proof of access.
-- [ ] Scope every read and write query to the authenticated user's tenant and required resource relationship.
+- [x] Implement registration, login, logout, password reset, email verification, and secure session expiration/invalidation.
+- [x] Hash passwords using the selected authentication library's supported secure algorithm; never log credentials or reset tokens.
+- [x] Define roles and capability permissions for `SUPER_ADMIN`, merchant owner, manager, staff, and customer.
+- [x] Implement reusable server-side authorization checks for permissions and resource ownership.
+- [x] Derive active merchant/tenant context from the authenticated session and membership; do not trust a frontend-supplied merchant ID as proof of access.
+- [x] Scope every read and write query to the authenticated user's tenant and required resource relationship.
 - [ ] Add rate limits for login, registration, password reset, QR/token resolution, and redemption-code attempts; use Redis only where appropriate and define safe behavior when it is unavailable.
 - [ ] Add audit events for authentication and sensitive role, merchant, customer, loyalty, and redemption actions.
-- [ ] Write automated cross-tenant authorization tests for customers, balances, transactions, rewards, redemptions, staff, campaigns, analytics, and exports.
-- [ ] Test privilege escalation attempts, suspended users/merchants, expired sessions, and unauthenticated direct API requests.
+- [x] Write automated cross-tenant authorization tests for customers, balances, transactions, rewards, redemptions, staff, campaigns, analytics, and exports.
+- [x] Test privilege escalation attempts, suspended users/merchants, expired sessions, and unauthenticated direct API requests.
 
 **Done when:** A user from Merchant A cannot read or mutate Merchant B data through any API or UI route, and role restrictions are enforced server-side.
 

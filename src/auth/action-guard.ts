@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { resolveAuthFromCookieSource, type AuthContext } from "./context";
 import { can } from "./guard";
@@ -20,7 +20,7 @@ import type { Capability } from "./roles";
  */
 
 export type ActionFailureCode =
-  "unauthorized" | "forbidden" | "invalid" | "error";
+  "unauthorized" | "forbidden" | "invalid" | "rate_limited" | "error";
 
 export type ActionResult<T = null> =
   | { ok: true; data: T }
@@ -87,6 +87,6 @@ export async function guardedAction<T>(
   work: (auth: AuthContext) => Promise<T> | T,
 ): Promise<ActionResult<T>> {
   const cookieStore = await cookies();
-  const auth = await resolveAuthFromCookieSource(cookieStore);
+  const auth = await resolveAuthFromCookieSource(cookieStore, await headers());
   return runGuarded(auth, capabilities, work);
 }

@@ -1,12 +1,15 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { AUTH_SCHEMA_NAMES } from "./auth-schemas";
 import { ENTITY_SCHEMAS } from "./index";
 
 /**
  * Guards the entity registration list (checklist §4): every `*.entity.ts`
  * file must be exported from the barrel that `data-source.ts` hands to
- * TypeORM, otherwise the schema silently loses tables/constraints.
+ * TypeORM, otherwise the schema silently loses tables/constraints. Better
+ * Auth's generated tables (`session`, `account`, `verification`) are not
+ * files of their own, so they are listed explicitly instead.
  */
 
 const entitiesDir = path.join(process.cwd(), "src/db/entities");
@@ -26,6 +29,11 @@ describe("entity registration", () => {
       .sort();
 
     expect(fileNames.length).toBeGreaterThan(0);
-    expect(schemaNames).toEqual(fileNames);
+    expect(AUTH_SCHEMA_NAMES.sort()).toEqual([
+      "account",
+      "session",
+      "verification",
+    ]);
+    expect(schemaNames).toEqual([...fileNames, ...AUTH_SCHEMA_NAMES].sort());
   });
 });

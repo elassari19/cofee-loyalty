@@ -1,9 +1,10 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
 import { withApiHandler, type ApiHandler } from "@/lib/api";
 import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { PATHNAME_HEADER } from "@/lib/request-context";
 
 import {
   resolveAuthFromCookieSource,
@@ -40,12 +41,11 @@ export async function requirePageAccess(
   capabilities?: Capability | readonly Capability[],
 ): Promise<AuthContext> {
   const cookieStore = await cookies();
-  const auth = await resolveAuthFromCookieSource(cookieStore);
+  const requestHeaders = await headers();
+  const auth = await resolveAuthFromCookieSource(cookieStore, requestHeaders);
 
   if (!auth) {
-    // TODO(§5): preserve the intended destination (`?next=`) once the real
-    // sign-in flow exists; the dev preview picks a destination itself.
-    redirect("/sign-in");
+    redirect(signInPath(requestHeaders.get(PATHNAME_HEADER)));
   }
 
   if (capabilities && !can(auth, capabilities)) {
@@ -53,6 +53,19 @@ export async function requirePageAccess(
   }
 
   return auth;
+}
+
+/**
+ * Builds the sign-in entry point for a visitor who was turned away: the page
+ * they asked for travels along as `?next=` (validated again on the sign-in
+ * page before anything redirects there).
+ */
+function signInPath(destination: string | null): string {
+  if (!destination) return "/sign-in";
+  if (!destination.startsWith("/") || destination.startsWith("//")) {
+    return "/sign-in";
+  }
+  return `/sign-in?next=${encodeURIComponent(destination)}`;
 }
 
 /** Whether the role belongs to one of the listed audiences. */
@@ -74,10 +87,11 @@ export async function requirePageAudience(
   audiences: Audience | readonly Audience[],
 ): Promise<AuthContext> {
   const cookieStore = await cookies();
-  const auth = await resolveAuthFromCookieSource(cookieStore);
+  const requestHeaders = await headers();
+  const auth = await resolveAuthFromCookieSource(cookieStore, requestHeaders);
 
   if (!auth) {
-    redirect("/sign-in");
+    redirect(signInPath(requestHeaders.get(PATHNAME_HEADER)));
   }
   if (!matchesAudience(auth.role, audiences)) {
     redirect("/403");

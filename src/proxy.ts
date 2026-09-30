@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getLogger } from "@/lib/logger";
-import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/request-context";
+import {
+  PATHNAME_HEADER,
+  REQUEST_ID_HEADER,
+  resolveRequestId,
+} from "@/lib/request-context";
 
 /**
  * Correlation-id entry point (checklist §2).
@@ -17,6 +21,12 @@ export function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(REQUEST_ID_HEADER, requestId);
+  // Tells the page guards where the visitor actually asked to go, so a sign-in
+  // redirect can carry `?next=` and return them there afterwards.
+  requestHeaders.set(
+    PATHNAME_HEADER,
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set(REQUEST_ID_HEADER, requestId);

@@ -61,13 +61,17 @@ page **and** API route, so hidden navigation is never the authorization.
 | Staff / cashier  | Counter register | `/register`, `/register/customers`, `/register/rewards`, `/register/transactions`                                      |
 | Customer         | Customer portal  | `/me`, `/me/rewards`, `/me/offers`, `/me/activity`, `/me/profile`                                                      |
 
-- **Role preview (development only).** Until Better Auth lands in §5 there is no real
-  session: `POST /api/preview` (form-encoded `role=<ROLE>`) sets an httpOnly
-  `cofe_preview_role` cookie for 8 hours, honored only when `isPreviewEnabled()` —
+- **Role preview (development only).** Real sessions come from Better Auth (§5);
+  `POST /api/preview` (form-encoded `role=<ROLE>`) is a dev-only overlay that sets an
+  httpOnly `cofe_preview_role` cookie for 8 hours, honored only when `isPreviewEnabled()` —
   production ignores the cookie and returns 404. The `/preview` page and the account
   menu's "view as role" switch drive it, and server guards read the same context, so
   what you preview is exactly what is enforced. Anonymous requests are rejected:
   pages redirect to `/sign-in`, `/api/me` returns 401.
+- **Password reset and verification emails are captured, not sent.** Without an SMTP
+  provider, `src/integrations/email` records every message in a bounded in-memory
+  outbox; `GET /api/dev/outbox` (dev only, 404 in production) lists them so you can
+  open the reset/verification link locally.
 - **Data is a process-local demo store** (`src/lib/demo-store.ts`). Mutations survive
   while the dev server runs and reset on restart; PostgreSQL + TypeORM replaces it in
   §4.
@@ -254,6 +258,8 @@ src/
     (customer)/         Customer portal — /me (§3)
     api/health/         Health endpoint (checklist §2)
     api/preview/        Dev-only role preview cookie (checklist §3)
+    api/auth/           Better Auth catch-all handler (checklist §5)
+    api/dev/outbox/     Dev-only captured auth emails (checklist §5)
     page.tsx            Product landing; plus sign-in and 403 shells
   auth/                 Roles, permissions, session and tenant guards (checklist §5)
   components/           UI components
@@ -274,7 +280,7 @@ src/
     campaigns/          Campaigns (§10)
     analytics/          Merchant and platform metrics (§11)
     platform/           Super-admin operations (§11)
-  integrations/         Provider-neutral adapters: POS, Wallet, WhatsApp, SMS (§12)
+  integrations/         Provider-neutral adapters: email (§5), POS, Wallet, WhatsApp, SMS (§12)
   lib/                  Cross-cutting server utilities
     env.ts              Environment schema + fail-fast validation
     logger.ts           pino logger, redaction, correlation-aware `getLogger()`
@@ -283,6 +289,8 @@ src/
     errors.ts           `AppError` hierarchy and `toAppError`
     health.ts           Application / PostgreSQL / Redis checks
     redis.ts            Single Redis entry point (narrowly scoped)
+    rate-limit.ts       Redis-backed throttling for auth endpoints (§5)
+    audit.ts            Append-only `audit_log` writer (§5)
     startup.ts          Node-only boot work: validate config, log, abort on error
     demo-store.ts       Session-local demo data until PostgreSQL (§4)
     actions.ts          Server actions shared by the §3 pages

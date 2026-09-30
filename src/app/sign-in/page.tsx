@@ -1,94 +1,87 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { EyeIcon, ShieldCheckIcon } from "lucide-react";
+import { MailCheckIcon, ShieldCheckIcon } from "lucide-react";
 
-import { resolveAuthFromCookieSource, homePathFor } from "@/auth/context";
-import { roleLabel } from "@/auth/roles";
-import { Badge } from "@/components/ui/badge";
+import { SignInForm } from "@/auth/auth-forms";
+import { isPreviewEnabled, resolveAuthFromCookieSource } from "@/auth/context";
+import { destinationFor, safeNextPath } from "@/auth/flows";
+import { AuthCard } from "@/components/auth/auth-card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Sign in",
 };
 
+interface SignInPageProps {
+  searchParams: Promise<{
+    next?: string;
+    reset?: string;
+    verified?: string;
+  }>;
+}
+
 /**
- * Sign-in landing spot (checklist §3 → §5).
+ * Credential sign-in (checklist §5).
  *
- * Real credential sign-in, password reset and session expiry ship with §5
- * (Better Auth, see ADR 0001). Until then this page reports the caller's
- * current access context honestly instead of pretending to authenticate, and
- * routes people to the role preview.
+ * Already-authenticated callers never see the form: they are sent straight to
+ * the workspace their session resolves to (including `/choose-merchant` when a
+ * merchant identity still has to pick a tenant). The `?next=` target is
+ * validated as a same-site path before it reaches the action.
  */
-export default async function SignInPage() {
-  const auth = await resolveAuthFromCookieSource(await cookies());
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const params = await searchParams;
+  const next = safeNextPath(params.next) ?? undefined;
+  const store = await cookies();
+  const auth = await resolveAuthFromCookieSource(store, await headers());
+  if (auth) redirect(next ?? destinationFor(auth));
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheckIcon aria-hidden="true" className="size-5" />
-            Sign in
-          </CardTitle>
-          <CardDescription>
-            {auth
-              ? "A session context is active for this browser."
-              : "You are not signed in on this browser."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {auth ? (
-            <div className="border-border bg-muted/40 flex flex-col gap-2 rounded-lg border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm font-medium">
-                  {auth.displayName}
-                </span>
-                <Badge variant="outline">{roleLabel(auth.role)}</Badge>
-              </div>
-              <p className="text-muted-foreground text-xs">
-                {auth.preview
-                  ? "Active through the development preview — replaced by real sign-in in §5."
-                  : "Authenticated session."}
-              </p>
-              <Button render={<Link href={homePathFor(auth)} />}>
-                Continue to my workspace
-                <EyeIcon />
-              </Button>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Email and password sign-in, password reset, email verification and
-              session expiry arrive with checklist §5 (Better Auth). The server
-              guards for every route and API call are already in place —
-              anonymous requests are rejected today.
-            </p>
-          )}
-
-          <Button
-            variant={auth ? "outline" : "default"}
-            render={<Link href="/preview" />}
+    <AuthCard
+      icon={ShieldCheckIcon}
+      title="Sign in"
+      description="Sign in to manage loyalty programs, customers and rewards."
+      footnote={
+        <>
+          <Link
+            href="/"
+            className="hover:text-foreground underline underline-offset-4"
           >
-            {auth ? "Switch preview role" : "Choose a demo role"}
-          </Button>
-        </CardContent>
-      </Card>
+            Back to overview
+          </Link>
+        </>
+      }
+    >
+      {params.reset ? (
+        <Alert>
+          <MailCheckIcon aria-hidden="true" />
+          <AlertTitle>Password updated</AlertTitle>
+          <AlertDescription>
+            Your password was changed. Sign in with the new one — other sessions
+            were signed out.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-      <p className="text-muted-foreground text-center text-xs">
-        <Link
-          href="/"
-          className="hover:text-foreground underline underline-offset-4"
-        >
-          Back to overview
-        </Link>
-      </p>
-    </div>
+      {params.verified ? (
+        <Alert>
+          <MailCheckIcon aria-hidden="true" />
+          <AlertTitle>Email verified</AlertTitle>
+          <AlertDescription>
+            Your address is confirmed. Sign in to continue.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <SignInForm next={next} />
+
+      {isPreviewEnabled() ? (
+        <Button variant="outline" render={<Link href="/preview" />}>
+          Choose a demo role
+        </Button>
+      ) : null}
+    </AuthCard>
   );
 }

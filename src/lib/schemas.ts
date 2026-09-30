@@ -105,6 +105,46 @@ export const profileSchema = z.object({
 export type ProfileValues = z.infer<typeof profileSchema>;
 
 /**
+ * Passwords (checklist §5): the floor matches Better Auth's
+ * `minPasswordLength`, so the client never promises what the server rejects.
+ */
+export const PASSWORD_MIN_LENGTH = 10;
+
+const passwordField = (label: string) =>
+  z
+    .string()
+    .min(
+      PASSWORD_MIN_LENGTH,
+      `${label} needs ${PASSWORD_MIN_LENGTH} characters or more.`,
+    );
+
+export const signInSchema = z.object({
+  email: z.email("Enter a valid email address."),
+  password: z.string().min(1, "Enter your password."),
+});
+export type SignInValues = z.infer<typeof signInSchema>;
+
+export const signUpSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters."),
+  email: z.email("Enter a valid email address."),
+  password: passwordField("Your password"),
+});
+export type SignUpValues = z.infer<typeof signUpSchema>;
+
+export const passwordResetRequestSchema = z.object({
+  email: z.email("Enter a valid email address."),
+});
+export type PasswordResetRequestValues = z.infer<
+  typeof passwordResetRequestSchema
+>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "That reset link is missing its token."),
+  newPassword: passwordField("Your new password"),
+});
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+
+/**
  * Server-side parse for action payloads. Throws the first issue message so the
  * caller can surface it as the operation's result.
  */

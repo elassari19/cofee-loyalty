@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOutIcon, RepeatIcon } from "lucide-react";
 
+import { signOutAction } from "@/auth/actions";
+import { report } from "@/auth/client-actions";
 import type { AuthContext } from "@/auth/context";
 import { roleLabel } from "@/auth/roles";
 import { Button } from "@/components/ui/button";
@@ -31,22 +33,31 @@ export function UserMenu({ auth }: { auth: AuthContext }) {
 
   async function endSession() {
     setBusy(true);
-    try {
-      // Dev preview until §5 ships Better Auth sign-out on this endpoint.
-      const response = await fetch("/api/preview", {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: auth.preview ? "clear=1" : "signout=1",
-      });
-      if (!response.ok && response.status !== 404) {
-        throw new Error(`sign-out failed: ${response.status}`);
+
+    if (auth.preview) {
+      // Dev-only preview context: clear its cookie on the preview endpoint.
+      try {
+        const response = await fetch("/api/preview", {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: "clear=1",
+        });
+        if (!response.ok && response.status !== 404) {
+          throw new Error(`preview sign-out failed: ${response.status}`);
+        }
+        router.push("/");
+        router.refresh();
+      } catch {
+        notify.error("Ending the preview failed. Please try again.");
+        setBusy(false);
       }
-      router.push("/");
-      router.refresh();
-    } catch {
-      notify.error("Sign-out failed. Please try again.");
-      setBusy(false);
+      return;
     }
+
+    // Real session: revokes it server-side, clears the tenant cookie and
+    // redirects to /sign-in (checklist §5).
+    await report(() => signOutAction());
+    setBusy(false);
   }
 
   return (

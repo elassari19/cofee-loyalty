@@ -10,9 +10,12 @@
  * and `index.test.ts` fails if a file is added here without being registered.
  *
  * When adding an entity: create `*.entity.ts`, export its schema from this
- * file — the guard test enforces the rest.
+ * file — the guard test enforces the rest. The one exception is Better Auth's
+ * generated tables (`auth-schemas.ts`), which are registered as a group and
+ * accounted for explicitly by the same test.
  */
 import { AuditLogEntity } from "./audit-log.entity";
+import { AUTH_ENTITY_SCHEMAS } from "./auth-schemas";
 import { CampaignEntity } from "./campaign.entity";
 import { CustomerProfileEntity } from "./customer-profile.entity";
 import { IntegrationRecordEntity } from "./integration-record.entity";
@@ -28,6 +31,7 @@ import { UserEntity } from "./user.entity";
 
 export const ENTITY_SCHEMAS = [
   AuditLogEntity,
+  ...AUTH_ENTITY_SCHEMAS,
   CampaignEntity,
   CustomerProfileEntity,
   IntegrationRecordEntity,

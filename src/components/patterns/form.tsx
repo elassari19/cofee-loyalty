@@ -359,11 +359,14 @@ export function FormActions({
 
 export function SubmitButton({
   pending,
+  pendingLabel = "Saving…",
   children,
   className,
   disabled,
 }: {
   pending: boolean;
+  /** Wording shown while the action is in flight (defaults to "Saving…"). */
+  pendingLabel?: string;
   children: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -376,7 +379,7 @@ export function SubmitButton({
       aria-busy={pending}
     >
       {pending ? <Spinner className="size-3.5" aria-hidden="true" /> : null}
-      {pending ? "Saving…" : children}
+      {pending ? pendingLabel : children}
     </Button>
   );
 }

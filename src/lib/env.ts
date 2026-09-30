@@ -84,6 +84,61 @@ export const envSchema = z.object({
     .int("RATE_LIMIT_LOGIN_WINDOW_SECONDS must be an integer")
     .positive("RATE_LIMIT_LOGIN_WINDOW_SECONDS must be greater than 0")
     .default(60),
+  RATE_LIMIT_REGISTER_MAX: z.coerce
+    .number({ error: "RATE_LIMIT_REGISTER_MAX must be a number" })
+    .int("RATE_LIMIT_REGISTER_MAX must be an integer")
+    .positive("RATE_LIMIT_REGISTER_MAX must be greater than 0")
+    .default(3),
+  RATE_LIMIT_REGISTER_WINDOW_SECONDS: z.coerce
+    .number({ error: "RATE_LIMIT_REGISTER_WINDOW_SECONDS must be a number" })
+    .int("RATE_LIMIT_REGISTER_WINDOW_SECONDS must be an integer")
+    .positive("RATE_LIMIT_REGISTER_WINDOW_SECONDS must be greater than 0")
+    .default(3600),
+  RATE_LIMIT_PASSWORD_RESET_MAX: z.coerce
+    .number({ error: "RATE_LIMIT_PASSWORD_RESET_MAX must be a number" })
+    .int("RATE_LIMIT_PASSWORD_RESET_MAX must be an integer")
+    .positive("RATE_LIMIT_PASSWORD_RESET_MAX must be greater than 0")
+    .default(3),
+  RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS: z.coerce
+    .number({
+      error: "RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS must be a number",
+    })
+    .int("RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS must be an integer")
+    .positive("RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS must be greater than 0")
+    .default(3600),
+  /** QR payload and verification/reset token resolution attempts. */
+  RATE_LIMIT_TOKEN_RESOLVE_MAX: z.coerce
+    .number({ error: "RATE_LIMIT_TOKEN_RESOLVE_MAX must be a number" })
+    .int("RATE_LIMIT_TOKEN_RESOLVE_MAX must be an integer")
+    .positive("RATE_LIMIT_TOKEN_RESOLVE_MAX must be greater than 0")
+    .default(30),
+  RATE_LIMIT_TOKEN_RESOLVE_WINDOW_SECONDS: z.coerce
+    .number({
+      error: "RATE_LIMIT_TOKEN_RESOLVE_WINDOW_SECONDS must be a number",
+    })
+    .int("RATE_LIMIT_TOKEN_RESOLVE_WINDOW_SECONDS must be an integer")
+    .positive("RATE_LIMIT_TOKEN_RESOLVE_WINDOW_SECONDS must be greater than 0")
+    .default(60),
+  /** Redemption-code verification attempts (guessing resistance, §9). */
+  RATE_LIMIT_REDEMPTION_MAX: z.coerce
+    .number({ error: "RATE_LIMIT_REDEMPTION_MAX must be a number" })
+    .int("RATE_LIMIT_REDEMPTION_MAX must be an integer")
+    .positive("RATE_LIMIT_REDEMPTION_MAX must be greater than 0")
+    .default(10),
+  RATE_LIMIT_REDEMPTION_WINDOW_SECONDS: z.coerce
+    .number({ error: "RATE_LIMIT_REDEMPTION_WINDOW_SECONDS must be a number" })
+    .int("RATE_LIMIT_REDEMPTION_WINDOW_SECONDS must be an integer")
+    .positive("RATE_LIMIT_REDEMPTION_WINDOW_SECONDS must be greater than 0")
+    .default(60),
+  /**
+   * Block sign-in until the address is verified. Off by default so local
+   * development works without a mail provider; turn on in production once a
+   * provider is configured (checklist §5, PRD §7).
+   */
+  AUTH_REQUIRE_EMAIL_VERIFICATION: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -121,6 +176,19 @@ export function validateEnv(source: EnvSource = process.env): Env {
     LOG_LEVEL: source.LOG_LEVEL,
     RATE_LIMIT_LOGIN_MAX: source.RATE_LIMIT_LOGIN_MAX,
     RATE_LIMIT_LOGIN_WINDOW_SECONDS: source.RATE_LIMIT_LOGIN_WINDOW_SECONDS,
+    RATE_LIMIT_REGISTER_MAX: source.RATE_LIMIT_REGISTER_MAX,
+    RATE_LIMIT_REGISTER_WINDOW_SECONDS:
+      source.RATE_LIMIT_REGISTER_WINDOW_SECONDS,
+    RATE_LIMIT_PASSWORD_RESET_MAX: source.RATE_LIMIT_PASSWORD_RESET_MAX,
+    RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS:
+      source.RATE_LIMIT_PASSWORD_RESET_WINDOW_SECONDS,
+    RATE_LIMIT_TOKEN_RESOLVE_MAX: source.RATE_LIMIT_TOKEN_RESOLVE_MAX,
+    RATE_LIMIT_TOKEN_RESOLVE_WINDOW_SECONDS:
+      source.RATE_LIMIT_TOKEN_RESOLVE_WINDOW_SECONDS,
+    RATE_LIMIT_REDEMPTION_MAX: source.RATE_LIMIT_REDEMPTION_MAX,
+    RATE_LIMIT_REDEMPTION_WINDOW_SECONDS:
+      source.RATE_LIMIT_REDEMPTION_WINDOW_SECONDS,
+    AUTH_REQUIRE_EMAIL_VERIFICATION: source.AUTH_REQUIRE_EMAIL_VERIFICATION,
   };
 
   const result = envSchema.safeParse(candidate);
