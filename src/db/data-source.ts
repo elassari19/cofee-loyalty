@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import path from "node:path";
 import { DataSource } from "typeorm";
+import { ENTITY_SCHEMAS } from "./entities";
 
 /**
  * TypeORM DataSource used by CLI scripts (migrations, seeds) and by server-side
@@ -9,7 +10,13 @@ import { DataSource } from "typeorm";
  *
  * Entities are declared with `EntitySchema` (not decorators) so the same
  * modules load identically under Next.js (SWC), tsx (esbuild) and Vitest.
- * See docs/adr/0002-typeorm-entityschema.md.
+ * See docs/adr/0002-typeorm-entityschema.md. They are registered through the
+ * static `ENTITY_SCHEMAS` barrel rather than an `entities` glob: a glob would
+ * make TypeORM `import()` the files with a *native* dynamic import that
+ * bypasses the active loader's resolver (Vite under Vitest) and breaks there.
+ *
+ * The migrations glob stays because migrations are only ever loaded by the
+ * `pnpm db:*` tsx CLI, never by the app or the test runner.
  */
 
 const rootDir = process.cwd();
@@ -27,7 +34,7 @@ function requiredEnv(name: string): string {
 export const AppDataSource = new DataSource({
   type: "postgres",
   url: requiredEnv("DATABASE_URL"),
-  entities: [path.join(rootDir, "src/db/entities/**/*.entity.{ts,js}")],
+  entities: ENTITY_SCHEMAS,
   migrations: [path.join(rootDir, "src/db/migrations/*.{ts,js}")],
   migrationsTableName: "migrations",
   // Schema synchronization is never used as a migration strategy; the schema

@@ -43,16 +43,16 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 4. PostgreSQL and TypeORM Data Foundation
 
-- [ ] Design entities and relationships for users, customer profiles, merchants, merchant memberships, loyalty programs, loyalty memberships, ledger transactions, rewards, redemptions, campaigns, audit logs, subscriptions, and integration records.
-- [ ] Keep platform user identity separate from merchant-specific membership; allow one customer identity to join multiple merchants.
-- [ ] Add an explicit `merchant_id`/tenant relationship to every merchant-owned record and index tenant-scoped lookup paths.
-- [ ] Add database constraints for unique emails, membership uniqueness, valid enum/state values, and required relationships.
-- [ ] Model points and stamps as immutable ledger entries. Correct mistakes with reversing/adjustment entries rather than editing history.
-- [ ] Define how balances are read: derive from ledger or maintain a transactionally updated projection, with reconciliation tests proving it matches the ledger.
-- [ ] Add TypeORM migrations for every schema change. Disable schema synchronization outside disposable local experiments; never use it as production migration strategy.
-- [ ] Add transaction boundaries and locking/concurrency strategy for earn, adjustment, and redemption operations.
-- [ ] Add seeded development data through repeatable CLI scripts; never seed production with default credentials.
-- [ ] Document backup, restore, and migration rollback/recovery procedures.
+- [x] Design entities and relationships for users, customer profiles, merchants, merchant memberships, loyalty programs, loyalty memberships, ledger transactions, rewards, redemptions, campaigns, audit logs, subscriptions, and integration records.
+- [x] Keep platform user identity separate from merchant-specific membership; allow one customer identity to join multiple merchants.
+- [x] Add an explicit `merchant_id`/tenant relationship to every merchant-owned record and index tenant-scoped lookup paths.
+- [x] Add database constraints for unique emails, membership uniqueness, valid enum/state values, and required relationships.
+- [x] Model points and stamps as immutable ledger entries. Correct mistakes with reversing/adjustment entries rather than editing history.
+- [x] Define how balances are read: derive from ledger or maintain a transactionally updated projection, with reconciliation tests proving it matches the ledger.
+- [x] Add TypeORM migrations for every schema change. Disable schema synchronization outside disposable local experiments; never use it as production migration strategy.
+- [x] Add transaction boundaries and locking/concurrency strategy for earn, adjustment, and redemption operations.
+- [x] Add seeded development data through repeatable CLI scripts; never seed production with default credentials.
+- [x] Document backup, restore, and migration rollback/recovery procedures.
 
 **Done when:** Migrations build the database from empty state, tenant-owned records cannot be created without a tenant, and ledger history remains auditable.
 
