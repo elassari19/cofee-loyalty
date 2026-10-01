@@ -24,6 +24,8 @@ export type Role = (typeof ROLES)[number];
 export const CAPABILITIES = [
   /** Platform-wide administration: merchants, users, subscriptions, settings. */
   "platform.manage",
+  /** Register a new merchant business through self-serve onboarding. */
+  "merchant.create",
   /** View merchant/business settings. */
   "merchant.read",
   /** Change merchant/business settings. */
@@ -78,6 +80,9 @@ export type Capability = (typeof CAPABILITIES)[number];
  *   editing this one row when a merchant wants a stricter manager role.
  * - Customer capabilities only ever resolve against the customer's *own*
  *   membership; tenant scoping happens in the data layer (§5/§7).
+ * - `merchant.create` is the self-serve onboarding entry (§6): a customer
+ *   registering their own business, or an owner adding another one. It only
+ *   ever *creates a new tenant* — it grants nothing inside an existing one.
  */
 const MERCHANT_COMMON: Capability[] = [
   "merchant.read",
@@ -101,7 +106,7 @@ const MERCHANT_COMMON: Capability[] = [
 
 export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
   SUPER_ADMIN: CAPABILITIES,
-  MERCHANT_OWNER: [...MERCHANT_COMMON, "merchant.write"],
+  MERCHANT_OWNER: [...MERCHANT_COMMON, "merchant.write", "merchant.create"],
   MERCHANT_MANAGER: MERCHANT_COMMON,
   MERCHANT_STAFF: [
     "customers.read",
@@ -119,6 +124,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
     "rewards.redeem",
     "transactions.read",
     "campaigns.read",
+    "merchant.create",
   ],
 };
 

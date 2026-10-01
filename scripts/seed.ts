@@ -134,11 +134,11 @@ async function seedCustomersAndPrograms(): Promise<void> {
     VALUES
       ('${PROGRAM_LUNA_ID}', '${MERCHANT_LUNA_ID}', 'POINTS', 'Luna Points',
        'Earn 1 point per euro spent.', 'points',
-       '{"pointsPerEuro": 1, "minimumPurchase": 5, "rounding": "FLOOR", "redemptionThreshold": 100}'::jsonb,
+       '{"pointsPerEuro": 1, "rounding": "FLOOR", "minimumPurchase": 5, "expiryMonths": null, "redemptionThresholds": [{"cost": 100, "label": "Free coffee"}, {"cost": 250, "label": "Free pastry + coffee"}]}'::jsonb,
        1, 'active'),
       ('${PROGRAM_ROAST_ID}', '${MERCHANT_ROAST_ID}', 'STAMPS', 'Roast Stamp Card',
        'One stamp per visit, free espresso at 10.', 'stamps',
-       '{"stampsPerVisit": 1, "requiredStamps": 10, "maximumStampsPerTransaction": 1}'::jsonb,
+       '{"requiredStamps": 10, "stampsPerPurchase": 1, "minimumPurchase": 0, "expiryMonths": null, "maximumStampsPerTransaction": 1}'::jsonb,
        1, 'active')
     ON CONFLICT (id) DO NOTHING
   `);

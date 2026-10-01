@@ -28,6 +28,14 @@ describe("role capability matrix (PRD §8)", () => {
     expect(hasCapability("MERCHANT_MANAGER", "merchant.read")).toBe(true);
   });
 
+  it("gives self-serve onboarding to customers and owners only", () => {
+    expect(hasCapability("CUSTOMER", "merchant.create")).toBe(true);
+    expect(hasCapability("MERCHANT_OWNER", "merchant.create")).toBe(true);
+    expect(hasCapability("SUPER_ADMIN", "merchant.create")).toBe(true);
+    expect(hasCapability("MERCHANT_MANAGER", "merchant.create")).toBe(false);
+    expect(hasCapability("MERCHANT_STAFF", "merchant.create")).toBe(false);
+  });
+
   it("keeps loyalty, rewards, campaigns and staff management away from staff", () => {
     const staff: Role = "MERCHANT_STAFF";
     const denied: Capability[] = [

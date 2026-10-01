@@ -54,9 +54,15 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     >
       <SignUpForm next={next} />
       <p className="text-muted-foreground text-xs leading-relaxed">
-        New accounts start as customer accounts. Store owners are onboarded
-        separately, so registering here never grants access to a merchant
-        workspace.
+        New accounts start as customer accounts.{" "}
+        <Link
+          href="/onboarding"
+          className="hover:text-foreground underline underline-offset-4"
+        >
+          Register your business
+        </Link>{" "}
+        to run a loyalty program — store owners onboard separately, so this form
+        never grants access to a merchant workspace.
       </p>
     </AuthCard>
   );

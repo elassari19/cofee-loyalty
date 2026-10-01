@@ -5,31 +5,22 @@ import { revalidatePath } from "next/cache";
 import { guardedAction, type ActionResult } from "@/auth/action-guard";
 import {
   addCampaign,
-  getLoyalty,
   getOwnProfile,
   recordPurchase,
   redeemReward,
   setRewardActive,
-  updateBusiness,
-  updateLoyalty,
   updateOwnProfile,
-  type BusinessSettings,
   type Campaign,
-  type LoyaltySettings,
   type OwnProfile,
   type Reward,
 } from "@/lib/demo-store";
 import {
-  businessSettingsSchema,
   campaignSchema,
-  loyaltySettingsSchema,
   parseInput,
   profileSchema,
   purchaseSchema,
   redeemSchema,
-  type BusinessSettingsValues,
   type CampaignValues,
-  type LoyaltySettingsValues,
   type ProfileValues,
   type PurchaseValues,
   type RedeemValues,
@@ -43,29 +34,11 @@ import {
  * schema, so a direct POST that skips the form's client validation still gets
  * rejected. Results are returned, not thrown, so the UI can state exactly what
  * happened — including "nothing was changed".
+ *
+ * Business settings and loyalty rules are no longer here: §6 rewired both to
+ * the database through `@/features/merchants/actions` and
+ * `@/features/loyalty/actions`.
  */
-
-export async function saveLoyaltySettings(
-  values: LoyaltySettingsValues,
-): Promise<ActionResult<LoyaltySettings>> {
-  return guardedAction("loyalty.write", () => {
-    const parsed = parseInput(loyaltySettingsSchema, values);
-    updateLoyalty(parsed);
-    revalidatePath("/loyalty");
-    return getLoyalty();
-  });
-}
-
-export async function saveBusinessSettings(
-  values: BusinessSettingsValues,
-): Promise<ActionResult<BusinessSettings>> {
-  return guardedAction("merchant.write", () => {
-    const parsed = parseInput(businessSettingsSchema, values);
-    updateBusiness(parsed);
-    revalidatePath("/settings");
-    return parsed;
-  });
-}
 
 export async function createCampaign(
   values: CampaignValues,

@@ -100,6 +100,9 @@ interface TextFieldProps<T extends FieldValues> {
   autoComplete?: string;
   required?: boolean;
   disabled?: boolean;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
   className?: string;
 }
 

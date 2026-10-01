@@ -73,14 +73,14 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 6. Merchant Onboarding and Loyalty Configuration
 
-- [ ] Implement merchant registration and business profile setup, including name, category, contact details, address, currency, timezone, and status.
-- [ ] Guide the owner through selecting exactly one loyalty model: points or stamps.
-- [ ] Implement points configuration for earning rules, rounding, minimum purchase, expiration policy, and redemption thresholds.
-- [ ] Implement stamp configuration for qualifying purchases, required stamps, expiration, and maximum stamps per transaction.
-- [ ] Validate configuration on the server and version rule changes so historical ledger entries retain the rule context used when created.
-- [ ] Allow the owner to create an initial reward and preview the customer-facing program.
-- [ ] Generate a merchant join URL and QR code that contains no personal or sensitive customer information.
-- [ ] Add onboarding progress, validation errors, and a way to safely resume incomplete setup.
+- [x] Implement merchant registration and business profile setup, including name, category, contact details, address, currency, timezone, and status.
+- [x] Guide the owner through selecting exactly one loyalty model: points or stamps.
+- [x] Implement points configuration for earning rules, rounding, minimum purchase, expiration policy, and redemption thresholds.
+- [x] Implement stamp configuration for qualifying purchases, required stamps, expiration, and maximum stamps per transaction.
+- [x] Validate configuration on the server and version rule changes so historical ledger entries retain the rule context used when created.
+- [x] Allow the owner to create an initial reward and preview the customer-facing program.
+- [x] Generate a merchant join URL and QR code that contains no personal or sensitive customer information.
+- [x] Add onboarding progress, validation errors, and a way to safely resume incomplete setup.
 
 **Done when:** A merchant can create a business, activate one correctly configured loyalty program, create a reward, and display a join QR code.
 

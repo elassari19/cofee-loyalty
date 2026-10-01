@@ -77,6 +77,17 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
       <SignInForm next={next} />
 
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        Own a local business?{" "}
+        <Link
+          href="/onboarding"
+          className="hover:text-foreground underline underline-offset-4"
+        >
+          Register it and set up a loyalty program
+        </Link>
+        — the wizard takes about two minutes.
+      </p>
+
       {isPreviewEnabled() ? (
         <Button variant="outline" render={<Link href="/preview" />}>
           Choose a demo role
