@@ -14,25 +14,26 @@ record and needs no backup.
 
 ## Schema map
 
-| Table                 | Purpose                                                                                                                     | Tenant column                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `user`                | Platform identity (Better Auth). Platform `role`: `SUPER_ADMIN`/`MERCHANT`/`CUSTOMER`.                                      | — (platform)                                  |
-| `account`             | Credential row per identity: `provider_id` + scrypt `password` hash (Better Auth).                                          | — (platform)                                  |
-| `session`             | Server-side session state; `token` unique, `expires_at` enforced, `ON DELETE CASCADE` from `user`.                          | — (platform)                                  |
-| `verification`        | Single-use email-verification / password-reset tokens with `expires_at`.                                                    | — (platform)                                  |
-| `customer_profile`    | Customer-facing profile, one per `user`.                                                                                    | — (platform)                                  |
-| `merchant`            | Tenant record. `status`: trial/active/suspended.                                                                            | (is the tenant)                               |
-| `merchant_membership` | Platform user ↔ merchant membership with tenant role (owner/manager/staff).                                                 | `merchant_id`                                 |
-| `loyalty_program`     | Points or stamps configuration, versioned by `rule_version`. Partial unique: one `active` per merchant.                     | `merchant_id`                                 |
-| `loyalty_membership`  | One customer's membership in one merchant; carries the **balance projection**. `UNIQUE (merchant_id, customer_profile_id)`. | `merchant_id`                                 |
-| `loyalty_transaction` | **Immutable ledger**: signed `delta` per entry.                                                                             | `merchant_id`                                 |
-| `reward`              | Redeemable reward, cost in the program's unit.                                                                              | `merchant_id`                                 |
-| `reward_redemption`   | Opaque redemption code (stored as sha256 `code_hash`), lifecycle `ISSUED → VERIFIED → REDEEMED`.                            | `merchant_id`                                 |
-| `campaign`            | Scheduled campaign with start/end window.                                                                                   | `merchant_id`                                 |
-| `audit_log`           | **Immutable** audit trail of sensitive actions.                                                                             | `merchant_id` (nullable for platform actions) |
-| `subscription`        | Plan and limits, one row per merchant.                                                                                      | `merchant_id`                                 |
-| `integration_record`  | Provider identifier ↔ canonical entity mapping (§12 extension point).                                                       | `merchant_id`                                 |
-| `migrations`          | Applied migration bookkeeping (TypeORM).                                                                                    | —                                             |
+| Table                    | Purpose                                                                                                                                  | Tenant column                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `user`                   | Platform identity (Better Auth). Platform `role`: `SUPER_ADMIN`/`MERCHANT`/`CUSTOMER`.                                                   | — (platform)                                  |
+| `account`                | Credential row per identity: `provider_id` + scrypt `password` hash (Better Auth).                                                       | — (platform)                                  |
+| `session`                | Server-side session state; `token` unique, `expires_at` enforced, `ON DELETE CASCADE` from `user`.                                       | — (platform)                                  |
+| `verification`           | Single-use email-verification / password-reset tokens with `expires_at`.                                                                 | — (platform)                                  |
+| `customer_profile`       | Customer-facing profile, one per `user`.                                                                                                 | — (platform)                                  |
+| `merchant`               | Tenant record. `status`: trial/active/suspended.                                                                                         | (is the tenant)                               |
+| `merchant_membership`    | Platform user ↔ merchant membership with tenant role (owner/manager/staff).                                                              | `merchant_id`                                 |
+| `loyalty_program`        | Points or stamps configuration, versioned by `rule_version`. Partial unique: one `active` per merchant.                                  | `merchant_id`                                 |
+| `loyalty_membership`     | One customer's membership in one merchant; carries the **balance projection**. `UNIQUE (merchant_id, customer_profile_id)`.              | `merchant_id`                                 |
+| `loyalty_identity_token` | Opaque card token (base64url, 256-bit) for staff lookup; the QR payload holds no PII. Partial unique: one `active` token per membership. | `merchant_id`                                 |
+| `loyalty_transaction`    | **Immutable ledger**: signed `delta` per entry.                                                                                          | `merchant_id`                                 |
+| `reward`                 | Redeemable reward, cost in the program's unit.                                                                                           | `merchant_id`                                 |
+| `reward_redemption`      | Opaque redemption code (stored as sha256 `code_hash`), lifecycle `ISSUED → VERIFIED → REDEEMED`.                                         | `merchant_id`                                 |
+| `campaign`               | Scheduled campaign with start/end window.                                                                                                | `merchant_id`                                 |
+| `audit_log`              | **Immutable** audit trail of sensitive actions.                                                                                          | `merchant_id` (nullable for platform actions) |
+| `subscription`           | Plan and limits, one row per merchant.                                                                                                   | `merchant_id`                                 |
+| `integration_record`     | Provider identifier ↔ canonical entity mapping (§12 extension point).                                                                    | `merchant_id`                                 |
+| `migrations`             | Applied migration bookkeeping (TypeORM).                                                                                                 | —                                             |
 
 **Tenancy rules.** Every merchant-owned table has `merchant_id NOT NULL` with
 tenant-scoped indexes. A customer identity (`user` + `customer_profile`) is

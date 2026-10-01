@@ -55,6 +55,7 @@ page **and** API route, so hidden navigation is never the authorization.
 | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Anyone           | Product landing  | `/`                                                                                                                    |
 | Anonymous        | Auth wall        | `/sign-in` (guards redirect here); denied roles land on `/403`                                                         |
+| Anyone           | Join landing     | `/join/<slug>` — public registration into one merchant's program; signs up, then issues the member's loyalty card      |
 | Platform admin   | Administration   | `/admin`, `/admin/merchants`, `/admin/users`, `/admin/analytics`, `/admin/settings`                                    |
 | Merchant owner   | Merchant setup   | `/onboarding` (business profile → loyalty model → first reward → activate + join QR); resumes at the first gap         |
 | Merchant owner   | Merchant console | `/dashboard`, `/customers`, `/loyalty`, `/transactions`, `/rewards`, `/campaigns`, `/staff`, `/analytics`, `/settings` |

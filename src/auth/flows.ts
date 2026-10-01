@@ -294,7 +294,9 @@ export interface SignUpInput extends FlowCall {
  */
 export async function performSignUp(
   input: SignUpInput,
-): Promise<ActionResult<{ redirectTo: string; verifyEmail: boolean }>> {
+): Promise<
+  ActionResult<{ userId: string; redirectTo: string; verifyEmail: boolean }>
+> {
   const ip = clientIp(input.headers);
   const blocked = await guard("register", ip);
   if (blocked) return blocked;
@@ -344,6 +346,7 @@ export async function performSignUp(
   return {
     ok: true,
     data: {
+      userId,
       redirectTo: verifyEmail
         ? "/verify-email?sent=1"
         : destinationFor(context),
@@ -454,6 +457,81 @@ export async function performResetPassword(
   });
 
   return { ok: true, data: { redirectTo: "/sign-in?reset=1" } };
+}
+
+export interface ChangePasswordInput extends FlowCall {
+  /** The signed-in account — taken from the resolved session, not the form. */
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+}
+
+/**
+ * Changes the password of the account the session belongs to (checklist §7
+ * bullet 6 — "account/session security flows").
+ *
+ * - The current password must be proven first: this is the flow someone runs
+ *   *because* they suspect someone else has their session, so it never
+ *   accepts a change from a stolen cookie alone.
+ * - `revokeOtherSessions` signs every other device out in the same call, so
+ *   "I changed my password" actually ends the access the caller was worried
+ *   about instead of just adding a new credential alongside it.
+ * - Rate-limited under the `passwordReset` policy (3 per hour per address),
+ *   audited on success, and never reveals whether a rejected *current*
+ *   password was the right one to try next.
+ */
+export async function performChangePassword(
+  input: ChangePasswordInput,
+): Promise<ActionResult<{ message: string }>> {
+  const ip = clientIp(input.headers);
+  const blocked = await guard("passwordReset", ip);
+  if (blocked) return blocked;
+
+  const options = {
+    body: {
+      currentPassword: input.currentPassword,
+      newPassword: input.newPassword,
+      revokeOtherSessions: true,
+    },
+    headers: input.headers,
+    asResponse: true,
+  };
+  const outcome = await callAuth(
+    () => getAuth().api.changePassword(options) as unknown as Promise<Response>,
+  );
+
+  if ("status" in outcome) {
+    getLogger().debug(
+      { status: outcome.status, code: outcome.code },
+      "password change rejected",
+    );
+    if (outcome.status === 401) {
+      return {
+        ok: false,
+        code: "unauthorized",
+        message: "Your session has ended. Sign in and try again.",
+      };
+    }
+    if (outcome.code === "INVALID_PASSWORD") {
+      return failure("invalid", "That current password is incorrect.");
+    }
+    return failure(
+      "invalid",
+      "Your password couldn't be changed. Check the new password and try again.",
+    );
+  }
+
+  await recordAudit({
+    action: "auth.password_changed",
+    resource: "user",
+    actorId: input.userId,
+    ipAddress: ip,
+  });
+
+  return {
+    ok: true,
+    data: { message: "Password updated. Your other sessions were signed out." },
+  };
 }
 
 export async function performVerifyEmail(

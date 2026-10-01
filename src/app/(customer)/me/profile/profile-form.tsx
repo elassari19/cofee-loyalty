@@ -2,8 +2,11 @@
 
 import { useRouter } from "next/navigation";
 
-import { saveOwnProfile } from "@/lib/actions";
-import { profileSchema, type ProfileValues } from "@/lib/schemas";
+import { saveProfileAction } from "@/features/customers/actions";
+import {
+  profileFormSchema,
+  type ProfileFormValues,
+} from "@/features/customers/schemas";
 import {
   AppForm,
   FormActions,
@@ -12,18 +15,30 @@ import {
   useZodForm,
 } from "@/components/patterns/form";
 import { notify } from "@/components/patterns/toast";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Contact details editor (checklist §7 bullet 6).
+ *
+ * Email is rendered as a read-only value rather than a field: it is the
+ * account's sign-in identity, so the form schema doesn't accept it and the
+ * server would reject any attempt to send it — showing it as an input would
+ * promise an edit the action can't perform.
+ */
 export function ProfileForm({
   defaultValues,
 }: {
-  defaultValues: ProfileValues;
+  defaultValues: { name: string; phone: string; email: string | null };
 }) {
   const router = useRouter();
-  const form = useZodForm(profileSchema, { defaultValues });
+  const form = useZodForm(profileFormSchema, {
+    defaultValues: { name: defaultValues.name, phone: defaultValues.phone },
+  });
 
-  async function onSubmit(values: ProfileValues) {
-    const result = await saveOwnProfile(values);
+  async function onSubmit(values: ProfileFormValues) {
+    const result = await saveProfileAction(values);
     if (result.ok) {
       notify.success(`Profile updated for ${result.data.name}.`);
       router.refresh();
@@ -38,28 +53,37 @@ export function ProfileForm({
         <TextField form={form} name="name" label="Full name" required />
         <TextField
           form={form}
-          name="email"
-          label="Email"
-          type="email"
-          inputMode="email"
-          required
-        />
-        <TextField
-          form={form}
           name="phone"
           label="Phone"
           type="tel"
           inputMode="tel"
           description="Optional — used for receipt text messages."
-          className="sm:col-span-2"
         />
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={defaultValues.email ?? ""}
+            readOnly
+            disabled
+            autoComplete="email"
+          />
+          <FieldDescription>
+            Your sign-in address — it doesn&apos;t change when you edit your
+            profile.
+          </FieldDescription>
+        </Field>
       </div>
 
       <FormActions>
         <Button
           type="button"
           variant="outline"
-          onClick={() => form.reset(defaultValues)}
+          onClick={() =>
+            form.reset({ name: defaultValues.name, phone: defaultValues.phone })
+          }
           disabled={form.formState.isSubmitting}
         >
           Reset

@@ -46,10 +46,22 @@ export function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : dateFormat.format(date);
 }
 
+/**
+ * A stored timestamp as the local calendar day (`2026-10-01`) — the shape
+ * `formatDate` takes. Slicing an ISO string instead would print UTC's day,
+ * which is the previous evening for anyone east of Greenwich.
+ */
+export function localDay(value: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+}
+
 /** `2026-09-28T09:14:00` → `Sep 28, 9:14 AM` */
-export function formatDateTime(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : dateTimeFormat.format(date);
+export function formatDateTime(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : dateTimeFormat.format(date);
 }
 
 /** Signed display for ledger-style values: `+45 pts`, `-300 pts`. */

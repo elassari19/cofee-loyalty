@@ -86,13 +86,13 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 7. Customer Enrollment and Loyalty Identity
 
-- [ ] Implement customer account registration from a merchant join URL and authenticate the customer securely.
-- [ ] Create or reuse the platform customer identity, then create a unique merchant loyalty membership without duplicating the customer profile.
-- [ ] Issue an opaque, revocable customer identifier/token for staff lookup; ensure the QR payload contains no direct personal information.
-- [ ] Prevent duplicate membership creation and handle repeated scans/requests idempotently.
-- [ ] Show the joined merchant, loyalty type, current balance/progress, available rewards, activity, offers, and profile.
-- [ ] Support customer profile updates and account/session security flows.
-- [ ] Verify one customer can join more than one merchant while keeping each membership and balance isolated.
+- [x] Implement customer account registration from a merchant join URL and authenticate the customer securely.
+- [x] Create or reuse the platform customer identity, then create a unique merchant loyalty membership without duplicating the customer profile.
+- [x] Issue an opaque, revocable customer identifier/token for staff lookup; ensure the QR payload contains no direct personal information.
+- [x] Prevent duplicate membership creation and handle repeated scans/requests idempotently.
+- [x] Show the joined merchant, loyalty type, current balance/progress, available rewards, activity, offers, and profile.
+- [x] Support customer profile updates and account/session security flows.
+- [x] Verify one customer can join more than one merchant while keeping each membership and balance isolated.
 
 **Done when:** A customer can join through QR, receives a safe loyalty identity, and sees only their own membership data.
 

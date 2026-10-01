@@ -1,8 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRightIcon, GiftIcon, SparklesIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  CreditCardIcon,
+  GiftIcon,
+  SparklesIcon,
+} from "lucide-react";
 
 import { requirePageAccess } from "@/auth/guard";
+import {
+  loadCustomerOverview,
+  type CustomerContext,
+} from "@/features/customers/service";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -15,61 +24,70 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress, ProgressValue } from "@/components/ui/progress";
-import {
-  CURRENT_CUSTOMER_ID,
-  getCurrentCustomer,
-  listCampaigns,
-  listRewards,
-  listTransactions,
-} from "@/lib/demo-store";
-import { formatNumber, formatSignedPoints } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
+
+import { CardActions } from "./card-actions";
+import { loadMembershipState, renderMembership } from "./state";
 
 export const metadata: Metadata = {
   title: "Overview",
 };
 
-const TIERS = [
-  { name: "Bronze", at: 0 },
-  { name: "Silver", at: 500 },
-  { name: "Gold", at: 1000 },
-] as const;
+/**
+ * The member's dashboard (checklist §7 bullet 5, PRD §16).
+ *
+ * Every number here is scoped to the one membership the session resolved —
+ * balance, ledger rows, rewards, offers and card all come from the same
+ * `CustomerContext`, so there is no parameter on this page that could show
+ * another member's or another tenant's data.
+ */
+export default async function CustomerHomePage() {
+  const auth = await requirePageAccess("loyalty.read");
+  const state = await loadMembershipState(auth);
 
-function tierProgress(points: number) {
-  const current =
-    [...TIERS].reverse().find((tier) => points >= tier.at) ?? TIERS[0];
-  const next = TIERS.find((tier) => tier.at > points);
-  if (!next) return { current, next: null, percent: 100 };
-  const span = next.at - current.at;
-  const percent = Math.min(
-    100,
-    Math.max(0, Math.round(((points - current.at) / span) * 100)),
-  );
-  return { current, next, percent };
+  return renderMembership(state, auth.displayName, (ctx) => (
+    <Overview key={ctx.merchant.id} ctx={ctx} />
+  ));
 }
 
-export default async function CustomerHomePage() {
-  await requirePageAccess("loyalty.read");
-  const customer = getCurrentCustomer();
-  const progress = tierProgress(customer.points);
-  const rewards = listRewards().filter((reward) => reward.active);
-  const affordable = rewards
-    .filter((reward) => reward.cost <= customer.points)
-    .slice(0, 2);
-  const recent = listTransactions({ customerId: CURRENT_CUSTOMER_ID }).slice(
-    0,
-    4,
-  );
-  const offers = listCampaigns().filter(
-    (campaign) => campaign.status === "live",
-  );
+async function Overview({ ctx }: { ctx: CustomerContext }) {
+  const overview = await loadCustomerOverview(ctx);
+  const { progress } = ctx;
+  const unit = progress.unit;
+  const firstName = ctx.profile.name.trim().split(/\s+/)[0] ?? ctx.profile.name;
+
+  const headline = progress.complete
+    ? `Every ${unit} milestone reached — enjoy them.`
+    : progress.target !== null
+      ? `${formatNumber(progress.target - progress.balance)} ${unit} to ${
+          progress.label ?? "the next milestone"
+        }`
+      : ctx.program
+        ? "The program's rules aren't complete yet."
+        : "This program hasn't been published yet.";
 
   return (
     <PageContainer>
       <PageHeader
-        title={`Hi, ${customer.name.split(" ")[0]}`}
-        description="Your balance, rewards and the latest activity on this loyalty card."
+        title={`Hi, ${firstName}`}
+        description={`Your balance, rewards and the latest activity on your card at ${ctx.merchant.name}.`}
         meta={
-          <StatusBadge status={customer.tier} label={`${customer.tier} tier`} />
+          <>
+            <Badge variant="secondary">{ctx.merchant.name}</Badge>
+            <Badge variant="outline">
+              {ctx.program ? ctx.program.name : "Loyalty card"}
+            </Badge>
+            {ctx.memberships.length > 1 ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/choose-merchant" />}
+              >
+                Switch program
+                <ArrowRightIcon aria-hidden="true" className="size-4" />
+              </Button>
+            ) : null}
+          </>
         }
       />
 
@@ -78,31 +96,26 @@ export default async function CustomerHomePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <SparklesIcon aria-hidden="true" className="size-4" />
-              Points balance
+              {unit.charAt(0).toUpperCase() + unit.slice(1)} balance
             </CardTitle>
-            <CardDescription>
-              {progress.next
-                ? `${formatNumber(progress.next.at - customer.points)} points to ${progress.next.name}`
-                : "Top tier reached — enjoy the perks."}
-            </CardDescription>
+            <CardDescription>{headline}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-4xl font-semibold tracking-tight tabular-nums">
-              {formatNumber(customer.points)}
+              {formatNumber(progress.balance)}
               <span className="text-muted-foreground ml-2 text-base font-normal">
-                points
+                {unit}
               </span>
             </p>
-            <Progress
-              value={progress.percent}
-              aria-label={`${progress.current.name} tier progress`}
-            >
-              <span className="text-muted-foreground text-xs">
-                {progress.current.name}
-                {progress.next ? ` → ${progress.next.name}` : ""}
-              </span>
-              <ProgressValue />
-            </Progress>
+            {progress.target !== null && !progress.complete ? (
+              <Progress value={progress.percent} aria-label={headline}>
+                <span className="text-muted-foreground text-xs">
+                  {formatNumber(progress.balance)} /{" "}
+                  {formatNumber(progress.target)}
+                </span>
+                <ProgressValue />
+              </Progress>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -110,7 +123,7 @@ export default async function CustomerHomePage() {
                 render={<Link href="/me/rewards" />}
               >
                 Browse rewards
-                <ArrowRightIcon />
+                <ArrowRightIcon aria-hidden="true" />
               </Button>
               <Button
                 variant="ghost"
@@ -118,12 +131,48 @@ export default async function CustomerHomePage() {
                 render={<Link href="/me/activity" />}
               >
                 See activity
-                <ArrowRightIcon />
+                <ArrowRightIcon aria-hidden="true" />
               </Button>
             </div>
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCardIcon aria-hidden="true" className="size-4" />
+              Your loyalty card
+            </CardTitle>
+            <CardDescription>
+              Show it at the counter. The code is opaque — it carries no name,
+              email or member number.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-3">
+            {overview.identity ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={overview.identity.qrDataUrl}
+                  alt={`Loyalty card for ${ctx.merchant.name}`}
+                  className="bg-background size-40 rounded-md border p-2"
+                />
+                <code className="bg-muted rounded px-2 py-1 text-xs break-all">
+                  {overview.identity.payload}
+                </code>
+                <CardActions payload={overview.identity.payload} />
+              </>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No card has been issued for this membership yet — re-join from
+                the merchant&apos;s link to issue one.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -135,12 +184,12 @@ export default async function CustomerHomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {affordable.length === 0 ? (
+            {overview.affordable.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 Keep earning — you&apos;ll unlock rewards as your balance grows.
               </p>
             ) : (
-              affordable.map((reward) => (
+              overview.affordable.map((reward) => (
                 <div
                   key={reward.id}
                   className="flex items-center justify-between gap-3"
@@ -149,16 +198,14 @@ export default async function CustomerHomePage() {
                     {reward.name}
                   </span>
                   <Badge variant="secondary">
-                    {formatNumber(reward.cost)} pts
+                    {formatNumber(reward.cost)} {unit}
                   </Badge>
                 </div>
               ))
             )}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Recent activity</CardTitle>
@@ -167,32 +214,28 @@ export default async function CustomerHomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {recent.length === 0 ? (
+            {overview.recentActivity.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 No activity yet — your first purchase will show up here.
               </p>
             ) : (
-              recent.map((transaction) => (
+              overview.recentActivity.map((row) => (
                 <div
-                  key={transaction.id}
+                  key={row.id}
                   className="flex items-center justify-between gap-3 text-sm"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate">{transaction.note}</span>
+                    <span className="block truncate">{row.detail}</span>
                     <span className="text-muted-foreground block text-xs">
-                      {transaction.type === "earn"
-                        ? "Purchase"
-                        : transaction.type === "redeem"
-                          ? "Reward redeemed"
-                          : "Adjustment"}
+                      {row.subtitle}
                     </span>
                   </span>
                   <span
                     className={`shrink-0 font-medium tabular-nums ${
-                      transaction.points < 0 ? "text-destructive" : ""
+                      row.delta < 0 ? "text-destructive" : ""
                     }`}
                   >
-                    {formatSignedPoints(transaction.points)}
+                    {row.amountLabel}
                   </span>
                 </div>
               ))
@@ -208,20 +251,25 @@ export default async function CustomerHomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {offers.length === 0 ? (
+            {overview.offers.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 No live offers right now — check back soon.
               </p>
             ) : (
-              offers.map((campaign) => (
-                <div key={campaign.id} className="flex flex-col gap-1">
+              overview.offers.map((offer) => (
+                <div key={offer.id} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium">{campaign.name}</span>
-                    <StatusBadge status={campaign.status} />
+                    <span className="text-sm font-medium">{offer.name}</span>
+                    <StatusBadge
+                      status={offer.live ? "live" : "scheduled"}
+                      label={offer.live ? "Live now" : "Scheduled"}
+                    />
                   </div>
-                  <p className="text-muted-foreground text-xs">
-                    {campaign.terms}
-                  </p>
+                  {offer.terms ? (
+                    <p className="text-muted-foreground text-xs">
+                      {offer.terms}
+                    </p>
+                  ) : null}
                 </div>
               ))
             )}

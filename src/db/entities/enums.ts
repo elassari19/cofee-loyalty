@@ -75,6 +75,15 @@ export const LEDGER_TYPES = [
 ] as const;
 export type LedgerType = (typeof LEDGER_TYPES)[number];
 
+/**
+ * Lifecycle of the opaque loyalty identity token a customer's QR card encodes
+ * (checklist §7 — "an opaque, revocable identifier"). One *active* token per
+ * membership (partial unique index); rotating the card revokes the old row
+ * instead of deleting it, so history of what was scanned stays intact.
+ */
+export const IDENTITY_TOKEN_STATUSES = ["active", "revoked"] as const;
+export type IdentityTokenStatus = (typeof IDENTITY_TOKEN_STATUSES)[number];
+
 export const REWARD_STATUSES = ["active", "inactive"] as const;
 export type RewardStatus = (typeof REWARD_STATUSES)[number];
 

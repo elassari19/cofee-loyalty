@@ -19,6 +19,7 @@ import { AUTH_ENTITY_SCHEMAS } from "./auth-schemas";
 import { CampaignEntity } from "./campaign.entity";
 import { CustomerProfileEntity } from "./customer-profile.entity";
 import { IntegrationRecordEntity } from "./integration-record.entity";
+import { LoyaltyIdentityTokenEntity } from "./loyalty-identity-token.entity";
 import { LoyaltyMembershipEntity } from "./loyalty-membership.entity";
 import { LoyaltyProgramEntity } from "./loyalty-program.entity";
 import { LoyaltyTransactionEntity } from "./loyalty-transaction.entity";
@@ -35,6 +36,7 @@ export const ENTITY_SCHEMAS = [
   CampaignEntity,
   CustomerProfileEntity,
   IntegrationRecordEntity,
+  LoyaltyIdentityTokenEntity,
   LoyaltyMembershipEntity,
   LoyaltyProgramEntity,
   LoyaltyTransactionEntity,

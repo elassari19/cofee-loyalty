@@ -2,79 +2,108 @@ import type { Metadata } from "next";
 
 import { requirePageAccess } from "@/auth/guard";
 import {
+  ACTIVITY_GROUPS,
+  listCustomerActivity,
+  type ActivityGroup,
+  type CustomerContext,
+} from "@/features/customers/service";
+import {
   DataTable,
   type DataTableColumn,
 } from "@/components/patterns/data-table";
-import { EmptyState } from "@/components/patterns/states";
 import { FilterSelect } from "@/components/patterns/filter-select";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
-import { formatDateTime, formatSignedPoints } from "@/lib/format";
+import { EmptyState } from "@/components/patterns/states";
+import { formatDateTime } from "@/lib/format";
 
-import type { Transaction, TransactionType } from "@/lib/demo-store";
-import { CURRENT_CUSTOMER_ID, listTransactions } from "@/lib/demo-store";
+import { loadMembershipState, renderMembership } from "../state";
 
 export const metadata: Metadata = {
   title: "Activity",
 };
 
-const TYPE_LABEL: Record<TransactionType, string> = {
+const TYPE_LABEL: Record<ActivityGroup, string> = {
   earn: "Earn",
   redeem: "Redeem",
   adjustment: "Adjustment",
 };
 
-const TYPE_OPTIONS = (Object.keys(TYPE_LABEL) as TransactionType[]).map(
-  (value) => ({ value, label: TYPE_LABEL[value] }),
-);
+const TYPE_OPTIONS = ACTIVITY_GROUPS.map((value) => ({
+  value,
+  label: TYPE_LABEL[value],
+}));
 
 export default async function CustomerActivityPage({
   searchParams,
 }: {
   searchParams: Promise<{ type?: string | string[] }>;
 }) {
-  await requirePageAccess("transactions.read");
+  const auth = await requirePageAccess("transactions.read");
+  const state = await loadMembershipState(auth);
+
   const rawType = (await searchParams).type;
   const type =
-    typeof rawType === "string" && rawType in TYPE_LABEL
-      ? (rawType as TransactionType)
+    typeof rawType === "string" &&
+    ACTIVITY_GROUPS.includes(rawType as ActivityGroup)
+      ? (rawType as ActivityGroup)
       : undefined;
 
-  // Own records only: the customer id comes from the resolved session, never
-  // from the URL, so another member's history can't be requested here.
-  const transactions = listTransactions({
-    customerId: CURRENT_CUSTOMER_ID,
-    ...(type ? { type } : {}),
-  });
+  return renderMembership(state, auth.displayName, (ctx) => (
+    <Activity key={ctx.merchant.id} ctx={ctx} type={type} />
+  ));
+}
 
-  const columns: DataTableColumn<Transaction>[] = [
+/**
+ * The member's ledger history (checklist §7 bullet 5, PRD §17).
+ *
+ * Every row is selected from the resolved membership's own profile and
+ * tenant ids — the filter only ever narrows *this* member's history, so the
+ * URL can't be used to page through anyone else's.
+ */
+async function Activity({
+  ctx,
+  type,
+}: {
+  ctx: CustomerContext;
+  type: ActivityGroup | undefined;
+}) {
+  const activity = await listCustomerActivity(ctx, type ? { group: type } : {});
+
+  const columns: DataTableColumn<(typeof activity)[number]>[] = [
     {
       key: "when",
       header: "When",
-      cell: (transaction) => formatDateTime(transaction.at),
+      cell: (row) => formatDateTime(row.createdAt),
     },
     {
       key: "type",
       header: "Type",
-      cell: (transaction) => (
-        <StatusBadge
-          status={transaction.type}
-          label={TYPE_LABEL[transaction.type]}
-        />
+      cell: (row) => (
+        <StatusBadge status={row.group} label={TYPE_LABEL[row.group]} />
       ),
     },
     {
       key: "detail",
       header: "Detail",
-      cell: (transaction) => transaction.note,
+      cell: (row) => (
+        <span className="flex flex-col">
+          <span>{row.detail}</span>
+          {row.subtitle ? (
+            <span className="text-muted-foreground text-xs">
+              {row.subtitle}
+            </span>
+          ) : null}
+        </span>
+      ),
     },
     {
-      key: "points",
-      header: "Points",
+      key: "amount",
+      header: "Amount",
       className: "text-right font-medium tabular-nums",
-      cell: (transaction) => (
-        <span className={transaction.points < 0 ? "text-destructive" : ""}>
-          {formatSignedPoints(transaction.points)}
+      cell: (row) => (
+        <span className={row.delta < 0 ? "text-destructive" : ""}>
+          {row.amountLabel}
         </span>
       ),
     },
@@ -84,10 +113,10 @@ export default async function CustomerActivityPage({
     <PageContainer>
       <PageHeader
         title="Activity"
-        description="Every point earned or spent on your card, newest first."
+        description={`Every entry on your card at ${ctx.merchant.name}, newest first.`}
         meta={
           <span className="text-muted-foreground text-xs tabular-nums">
-            {transactions.length} entries
+            {activity.length} entries
           </span>
         }
       />
@@ -95,8 +124,8 @@ export default async function CustomerActivityPage({
       <DataTable
         label="Your loyalty activity"
         columns={columns}
-        rows={transactions}
-        getRowKey={(transaction) => transaction.id}
+        rows={activity}
+        getRowKey={(row) => row.id}
         toolbar={
           <FilterSelect
             param="type"
