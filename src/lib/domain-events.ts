@@ -46,10 +46,26 @@ import { getLogger } from "@/lib/logger";
  *   backoff; it never rolls back or fails the request that produced it.
  */
 
-/** Closed domain of event types — adding one is a reviewed code change. */
+/**
+ * Closed domain of event types — adding one is a reviewed code change.
+ *
+ * Checklist §12 requires explicit event contracts for:
+ *   - customer.enrolled         — customer joined a merchant's loyalty program
+ *   - loyalty.transaction.created — any ledger entry (earn, adjust, redeem)
+ *   - reward.redeemed           — a redemption code was fully completed
+ *   - campaign.started          — a campaign became ACTIVE
+ *   - campaign.ended            — a campaign moved to ENDED/ARCHIVED
+ *
+ * Consumers (wallet adapters, notification adapters, gamification dispatcher)
+ * subscribe via `registerDomainEventHandler`. They must NOT write loyalty
+ * balances in response to an event — that would bypass ledger authority.
+ */
 export const DOMAIN_EVENT_TYPES = [
+  "customer.enrolled",
   "loyalty.transaction.created",
   "reward.redeemed",
+  "campaign.started",
+  "campaign.ended",
 ] as const;
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 

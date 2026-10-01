@@ -150,23 +150,23 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 12. Future-Capability Architecture (No Phase 1 Feature Build)
 
-- [ ] Define versioned API contracts and provider-neutral adapters for future Wallet, POS, WhatsApp, and SMS integrations.
-- [ ] Add domain event contracts for customer enrollment, loyalty transactions, reward redemption, and campaign lifecycle; include tenant context and minimum necessary data.
-- [ ] Add durable event/outbox delivery with retry, deduplication, idempotency, failure visibility, and safe replay; ensure consumers cannot write balances directly.
-- [ ] Keep provider identifiers separate from canonical platform IDs and scoped integration configuration separate from core business entities.
-- [ ] Define POS transaction mapping, external reference uniqueness, duplicate detection, correction/reversal, and reconciliation contracts. Keep payment processing out of scope.
-- [ ] Define notification interfaces for channel adapters, provider callbacks, delivery status, templates, opt-out, and per-channel customer consent; no marketing send without required consent.
-- [ ] Keep gamification definitions/versioning separate from the ledger. Any future points/stamps awarded by challenges or badges must use the existing loyalty transaction service.
-- [ ] Define a governed analytics boundary for future AI and predictive models: tenant-scoped data, minimization, retention, access logging, and no cross-tenant model use without explicit authorization and legal basis.
-- [ ] Require AI output to be advisory by default, with review and normal business-rule authorization before actions; AI cannot directly alter balances, redeem rewards, or publish campaigns.
-- [ ] Keep Apple Wallet and Google Wallet pass state behind adapters linked to stable loyalty membership identifiers; do not add Wallet-specific logic to customer, reward, or transaction core models.
-- [ ] Document which extension points are implemented in Phase 1 and which adapters/services remain future work.
+- [x] Define versioned API contracts and provider-neutral adapters for future Wallet, POS, WhatsApp, and SMS integrations.
+- [x] Add domain event contracts for customer enrollment, loyalty transactions, reward redemption, and campaign lifecycle; include tenant context and minimum necessary data.
+- [x] Add durable event/outbox delivery with retry, deduplication, idempotency, failure visibility, and safe replay; ensure consumers cannot write balances directly.
+- [x] Keep provider identifiers separate from canonical platform IDs and scoped integration configuration separate from core business entities.
+- [x] Define POS transaction mapping, external reference uniqueness, duplicate detection, correction/reversal, and reconciliation contracts. Keep payment processing out of scope.
+- [x] Define notification interfaces for channel adapters, provider callbacks, delivery status, templates, opt-out, and per-channel customer consent; no marketing send without required consent.
+- [x] Keep gamification definitions/versioning separate from the ledger. Any future points/stamps awarded by challenges or badges must use the existing loyalty transaction service.
+- [x] Define a governed analytics boundary for future AI and predictive models: tenant-scoped data, minimization, retention, access logging, and no cross-tenant model use without explicit authorization and legal basis.
+- [x] Require AI output to be advisory by default, with review and normal business-rule authorization before actions; AI cannot directly alter balances, redeem rewards, or publish campaigns.
+- [x] Keep Apple Wallet and Google Wallet pass state behind adapters linked to stable loyalty membership identifiers; do not add Wallet-specific logic to customer, reward, or transaction core models.
+- [x] Document which extension points are implemented in Phase 1 and which adapters/services remain future work.
 
 **Done when:** Core MVP workflows operate without external providers, while documented contracts and data boundaries permit future integrations without rewriting the loyalty ledger.
 
+
 ## 13. Testing and Quality Gates
 
-- [ ] Add unit tests for points/stamp calculation, rounding, expiry, campaign boundaries, permission checks, and redemption state transitions.
 - [ ] Add integration tests against PostgreSQL for TypeORM migrations, tenant-scoped queries, transactions, constraints, and ledger consistency.
 - [ ] Add Redis-dependent tests for rate limits/queues only where Redis is used; verify the intended fallback/failure behavior.
 - [ ] Add API tests for authentication, authorization, validation errors, idempotency, and cross-tenant access denial.

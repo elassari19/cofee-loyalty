@@ -36,6 +36,7 @@ import { RewardEntity, type Reward } from "@/db/entities/reward.entity";
 import { UserEntity } from "@/db/entities/user.entity";
 import { runInTransaction } from "@/db/transactions";
 import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors";
+import { enqueueDomainEvent } from "@/lib/domain-events";
 import { formatMoney } from "@/lib/format";
 import { parseInput } from "@/lib/schemas";
 
@@ -337,6 +338,28 @@ export async function enrollCustomer(
     membershipId: membership.row.id,
     issuedTo: input.userId,
   });
+
+  /**
+   * Emit `customer.enrolled` only when a brand-new membership was created
+   * (not on re-join). Enqueued inside the caller's transaction so the event
+   * is never announced before the membership row commits (checklist §12 §8).
+   *
+   * Payload carries only stable IDs — no PII (name, email, phone).
+   */
+  if (membership.created) {
+    await enqueueDomainEvent(em, {
+      merchantId: merchant.id,
+      eventType: "customer.enrolled",
+      aggregateType: "loyalty_membership",
+      aggregateId: membership.row.id,
+      payload: {
+        membershipId: membership.row.id,
+        customerProfileId: profile.row.id,
+        loyaltyType: null, // resolved by consumers from the program row
+      },
+      idempotencyKey: `customer.enrolled:${membership.row.id}`,
+    });
+  }
 
   return {
     merchantId: merchant.id,
