@@ -138,13 +138,13 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 11. Analytics and Super Admin
 
-- [ ] Implement merchant analytics for total/new/active customers, loyalty issued/redeemed, reward redemptions, and basic campaign participation.
-- [ ] Define metric formulas, time windows, timezone handling, and ledger sources so dashboard numbers are reproducible.
-- [ ] Ensure every merchant analytics query is tenant-scoped and test against cross-tenant data.
-- [ ] Implement a separate super-admin area with platform-wide merchant, user, customer, transaction, and redemption metrics.
-- [ ] Build merchant search/detail and activate/suspend actions for super admins; audit each sensitive action.
-- [ ] Add pagination, safe filtering, and export limits where exports are included.
-- [ ] Show empty/loading/error states and avoid presenting incomplete or stale metrics as exact without indicating their status.
+- [x] Implement merchant analytics for total/new/active customers, loyalty issued/redeemed, reward redemptions, and basic campaign participation.
+- [x] Define metric formulas, time windows, timezone handling, and ledger sources so dashboard numbers are reproducible.
+- [x] Ensure every merchant analytics query is tenant-scoped and test against cross-tenant data.
+- [x] Implement a separate super-admin area with platform-wide merchant, user, customer, transaction, and redemption metrics.
+- [x] Build merchant search/detail and activate/suspend actions for super admins; audit each sensitive action.
+- [x] Add pagination, safe filtering, and export limits where exports are included.
+- [x] Show empty/loading/error states and avoid presenting incomplete or stale metrics as exact without indicating their status.
 
 **Done when:** Merchant metrics contain only their tenant's data, while authorized super admins can monitor and manage platform entities with an audit trail.
 

@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listMerchants, platformMetrics } from "@/lib/demo-store";
+import { getPlatformMetrics, getRecentMerchants } from "@/features/platform/queries";
 import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -38,11 +38,8 @@ export const metadata: Metadata = {
 
 export default async function PlatformOverviewPage() {
   const auth = await requirePageAccess("platform.manage");
-  const metrics = platformMetrics();
-  const recent = listMerchants()
-    .slice()
-    .sort((a, b) => b.joinedOn.localeCompare(a.joinedOn))
-    .slice(0, 4);
+  const metrics = await getPlatformMetrics();
+  const recent = await getRecentMerchants();
 
   return (
     <PageContainer>
@@ -78,7 +75,7 @@ export default async function PlatformOverviewPage() {
         />
         <MetricCard
           label="Tenants"
-          value={formatNumber(new Set(listMerchants().map((m) => m.slug)).size)}
+          value={formatNumber(metrics.merchants)}
           hint="Isolated merchant workspaces"
           icon={Building2Icon}
         />
