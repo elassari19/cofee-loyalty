@@ -209,6 +209,40 @@ async function findByExternalRef(
 }
 
 /**
+ * Inserts one ledger row inside a savepoint when the caller is already in a
+ * transaction.
+ *
+ * PostgreSQL aborts the *whole* transaction on a constraint violation: the
+ * replay read below (and every later statement) would fail with "current
+ * transaction is aborted" instead of returning the winning row. A savepoint
+ * scopes the failure — rolling back to it clears the aborted state so the
+ * caller's transaction, and the balance projection it is about to write,
+ * survive a lost idempotency race.
+ */
+async function insertLedgerRow(
+  em: EntityManager,
+  values: QueryDeepPartialEntity<LoyaltyTransaction>,
+): Promise<void> {
+  const runner = em.queryRunner;
+  if (!runner || !runner.isTransactionActive || runner.isReleased) {
+    await em.insert(LoyaltyTransactionEntity, values);
+    return;
+  }
+  await runner.startTransaction();
+  try {
+    await em.insert(LoyaltyTransactionEntity, values);
+    await runner.commitTransaction();
+  } catch (error) {
+    try {
+      await runner.rollbackTransaction();
+    } catch {
+      // The connection is unusable either way; surface the original failure.
+    }
+    throw error;
+  }
+}
+
+/**
  * Append one immutable ledger entry and advance the balance projection in
  * the caller's transaction while holding the membership row lock.
  */
@@ -257,7 +291,7 @@ export async function appendLedgerEntry(
 
   const entryId = randomUUID();
   try {
-    await em.insert(LoyaltyTransactionEntity, {
+    await insertLedgerRow(em, {
       id: entryId,
       merchantId: input.merchantId,
       membershipId: input.membershipId,
@@ -284,8 +318,10 @@ export async function appendLedgerEntry(
       createdAt: new Date(),
     });
   } catch (error) {
-    // Lost a race with a concurrent duplicate: whichever unique constraint
-    // fired, the row that won is the answer — return it, change nothing.
+    // Lost a race with a concurrent duplicate: the savepoint has already
+    // un-aborted the transaction, so reading the winner here works. Whichever
+    // unique constraint fired, the row that won is the answer — return it and
+    // change nothing.
     if (isUniqueViolation(error)) {
       const existing = input.idempotencyKey
         ? await findByIdempotencyKey(em, input.merchantId, input.idempotencyKey)

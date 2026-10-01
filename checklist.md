@@ -98,15 +98,15 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 8. Loyalty Ledger and Staff Transactions
 
-- [ ] Implement a server-side loyalty service as the only authority for earning, adjustment, reversal, expiry, and redemption of loyalty value.
-- [ ] Add transaction types for points earned/adjusted/redeemed and stamps earned/adjusted/redeemed, with actor, tenant, source, reason, timestamp, and relevant purchase reference.
-- [ ] Calculate points/stamps from the merchant's active server-side rules; validate positive purchase amounts, currency, program status, limits, and permissions.
-- [ ] Enforce idempotency for cashier submissions and external references to prevent duplicate awards.
-- [ ] Make balance changes and ledger writes atomic; test concurrent purchases and simultaneous redemptions.
-- [ ] Add staff customer lookup by QR/token and a purchase entry flow with a review/confirmation step.
-- [ ] Allow only authorized managers/owners to make manual adjustments and require a reason; record adjustments as ledger entries.
-- [ ] Provide customer and merchant transaction histories with appropriate field-level data limits.
-- [ ] Publish a tenant-scoped loyalty transaction event only after the database transaction commits, using a durable outbox or equivalent.
+- [x] Implement a server-side loyalty service as the only authority for earning, adjustment, reversal, expiry, and redemption of loyalty value.
+- [x] Add transaction types for points earned/adjusted/redeemed and stamps earned/adjusted/redeemed, with actor, tenant, source, reason, timestamp, and relevant purchase reference.
+- [x] Calculate points/stamps from the merchant's active server-side rules; validate positive purchase amounts, currency, program status, limits, and permissions.
+- [x] Enforce idempotency for cashier submissions and external references to prevent duplicate awards.
+- [x] Make balance changes and ledger writes atomic; test concurrent purchases and simultaneous redemptions.
+- [x] Add staff customer lookup by QR/token and a purchase entry flow with a review/confirmation step.
+- [x] Allow only authorized managers/owners to make manual adjustments and require a reason; record adjustments as ledger entries.
+- [x] Provide customer and merchant transaction histories with appropriate field-level data limits.
+- [x] Publish a tenant-scoped loyalty transaction event only after the database transaction commits, using a durable outbox or equivalent.
 
 **Done when:** Staff can identify a customer, enter a purchase, receive a server-calculated result, and the customer balance/history update exactly once.
 

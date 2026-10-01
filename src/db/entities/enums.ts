@@ -76,6 +76,20 @@ export const LEDGER_TYPES = [
 export type LedgerType = (typeof LEDGER_TYPES)[number];
 
 /**
+ * Lifecycle of a row in the transactional outbox (checklist §8 bullet 12).
+ * A row is written in the *same* transaction as the change it describes, then
+ * a dispatcher claims it, delivers it and moves it to `DELIVERED` — or back to
+ * `PENDING` with a later `available_at` (and eventually `FAILED`) when a
+ * handler throws.
+ */
+export const DOMAIN_EVENT_STATUSES = [
+  "PENDING",
+  "DELIVERED",
+  "FAILED",
+] as const;
+export type DomainEventStatus = (typeof DOMAIN_EVENT_STATUSES)[number];
+
+/**
  * Lifecycle of the opaque loyalty identity token a customer's QR card encodes
  * (checklist §7 — "an opaque, revocable identifier"). One *active* token per
  * membership (partial unique index); rotating the card revokes the old row

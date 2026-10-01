@@ -366,6 +366,62 @@ export function programFormValues(input: {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Register and adjustment payloads (checklist §8)
+// ---------------------------------------------------------------------------
+
+/**
+ * Upper bound shared by purchase amounts and manual adjustments: far above
+ * any real sale, low enough that a fat-fingered exponent is rejected instead
+ * of writing an absurd ledger entry.
+ */
+export const MAX_PURCHASE_AMOUNT = 100000;
+export const MAX_ADJUSTMENT_DELTA = 100000;
+export const MAX_REASON_LENGTH = 200;
+
+/**
+ * The cashier's amount field. The member is *not* part of this form: it comes
+ * from the scanned card (or the picker) and is carried in component state, so
+ * a crafted POST cannot silently retarget a confirmed amount at another
+ * member — the server resolves and re-validates the member anyway.
+ */
+export const purchaseEntrySchema = z.object({
+  amount: z.coerce
+    .number("Enter the purchase amount.")
+    .positive("A purchase amount must be greater than zero.")
+    .max(
+      MAX_PURCHASE_AMOUNT,
+      `A purchase amount cannot exceed ${MAX_PURCHASE_AMOUNT}.`,
+    ),
+});
+export type PurchaseEntryValues = z.infer<typeof purchaseEntrySchema>;
+
+/**
+ * Manual balance adjustment (PRD §22): signed whole amount plus a mandatory
+ * reason. The capability check (`transactions.adjust`) lives in the action and
+ * again in the service — this is only the shape check.
+ */
+export const adjustmentSchema = z.object({
+  membershipId: z.string().min(1, "Select a member."),
+  delta: z.coerce
+    .number("Enter how much to add or remove.")
+    .int("Use whole units only.")
+    .refine((value) => value !== 0, "An adjustment must change the balance.")
+    .refine(
+      (value) => Math.abs(value) <= MAX_ADJUSTMENT_DELTA,
+      `An adjustment cannot move more than ${MAX_ADJUSTMENT_DELTA} at once.`,
+    ),
+  reason: z
+    .string()
+    .trim()
+    .min(3, "Give a reason for the adjustment (at least 3 characters).")
+    .max(
+      MAX_REASON_LENGTH,
+      `Keep the reason to ${MAX_REASON_LENGTH} characters or fewer.`,
+    ),
+});
+export type AdjustmentValues = z.infer<typeof adjustmentSchema>;
+
 export interface ProgramSummaryInput {
   type: LoyaltyType;
   unitName: string | null;

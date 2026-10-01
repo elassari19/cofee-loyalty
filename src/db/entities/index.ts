@@ -18,6 +18,7 @@ import { AuditLogEntity } from "./audit-log.entity";
 import { AUTH_ENTITY_SCHEMAS } from "./auth-schemas";
 import { CampaignEntity } from "./campaign.entity";
 import { CustomerProfileEntity } from "./customer-profile.entity";
+import { DomainEventOutboxEntity } from "./domain-event-outbox.entity";
 import { IntegrationRecordEntity } from "./integration-record.entity";
 import { LoyaltyIdentityTokenEntity } from "./loyalty-identity-token.entity";
 import { LoyaltyMembershipEntity } from "./loyalty-membership.entity";
@@ -35,6 +36,7 @@ export const ENTITY_SCHEMAS = [
   ...AUTH_ENTITY_SCHEMAS,
   CampaignEntity,
   CustomerProfileEntity,
+  DomainEventOutboxEntity,
   IntegrationRecordEntity,
   LoyaltyIdentityTokenEntity,
   LoyaltyMembershipEntity,

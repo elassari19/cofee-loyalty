@@ -16,6 +16,12 @@ export async function bootstrap(): Promise<void> {
       { nodeEnv: env.NODE_ENV, logLevel: env.LOG_LEVEL },
       "environment validated, server starting",
     );
+
+    // Deliver the transactional outbox (checklist §8): every request commits
+    // its events first, this pass drains whatever a previous process left
+    // behind. Failures are logged, never fatal — the rows stay `PENDING`.
+    const { startOutboxDispatcher } = await import("./domain-events");
+    startOutboxDispatcher();
   } catch (error) {
     // Fail fast: print every configuration problem, then abort startup so the
     // process cannot serve requests with a broken configuration.

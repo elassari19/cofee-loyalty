@@ -6,7 +6,6 @@ import { guardedAction, type ActionResult } from "@/auth/action-guard";
 import {
   addCampaign,
   getOwnProfile,
-  recordPurchase,
   redeemReward,
   setRewardActive,
   updateOwnProfile,
@@ -18,11 +17,9 @@ import {
   campaignSchema,
   parseInput,
   profileSchema,
-  purchaseSchema,
   redeemSchema,
   type CampaignValues,
   type ProfileValues,
-  type PurchaseValues,
   type RedeemValues,
 } from "@/lib/schemas";
 
@@ -35,9 +32,9 @@ import {
  * rejected. Results are returned, not thrown, so the UI can state exactly what
  * happened — including "nothing was changed".
  *
- * Business settings and loyalty rules are no longer here: §6 rewired both to
- * the database through `@/features/merchants/actions` and
- * `@/features/loyalty/actions`.
+ * Business settings, loyalty rules and purchase entry are no longer here: §6
+ * and §8 rewired all three to the database through
+ * `@/features/merchants/actions` and `@/features/loyalty/actions`.
  */
 
 export async function createCampaign(
@@ -59,20 +56,6 @@ export async function setRewardActiveAction(
     const reward = setRewardActive(rewardId, active);
     revalidatePath("/rewards");
     return reward;
-  });
-}
-
-export async function recordPurchaseAction(
-  values: PurchaseValues,
-): Promise<
-  ActionResult<{ customerName: string; pointsEarned: number; balance: number }>
-> {
-  return guardedAction("transactions.create", () => {
-    const parsed = parseInput(purchaseSchema, values);
-    const result = recordPurchase(parsed.customerId, parsed.amount);
-    revalidatePath("/register");
-    revalidatePath("/register/transactions");
-    return result;
   });
 }
 

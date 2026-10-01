@@ -2,8 +2,18 @@ import type { Metadata } from "next";
 import { ReceiptIcon, ZapIcon } from "lucide-react";
 
 import { requirePageAccess } from "@/auth/guard";
+import { getDb } from "@/db/connection";
+import { MerchantEntity } from "@/db/entities/merchant.entity";
+import { summarizeProgram } from "@/features/loyalty/schemas";
+import { findProgram } from "@/features/loyalty/service";
+import {
+  listMemberOptions,
+  listTenantTransactions,
+  TRANSACTION_GROUP_LABELS,
+} from "@/features/loyalty/transactions";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { EmptyState } from "@/components/patterns/states";
 import {
   Card,
   CardContent,
@@ -11,50 +21,73 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getLoyalty, listCustomers, listTransactions } from "@/lib/demo-store";
-import { formatNumber, formatSignedPoints } from "@/lib/format";
 
-import { PurchaseForm } from "./purchase-form";
+import { PurchaseRegister } from "./purchase-register";
 
 export const metadata: Metadata = {
   title: "Register",
 };
 
+/**
+ * Purchase entry at the register (checklist §8 bullets 5–6).
+ *
+ * Everything on this page comes from the database: the member picker, the
+ * active program's rules, and the latest ledger entries. The award itself is
+ * never rendered here — the client shows what the server's preview returned,
+ * and only the confirmed submission writes.
+ */
 export default async function RegisterPage() {
-  await requirePageAccess("transactions.create");
-  const loyalty = getLoyalty();
-  const recent = listTransactions().slice(0, 5);
+  const auth = await requirePageAccess([
+    "transactions.read",
+    "transactions.create",
+  ]);
+
+  if (!auth.merchantId) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Register"
+          description="Record a purchase and award value in one step."
+        />
+        <EmptyState
+          title="No active workspace"
+          description="The register belongs to a business workspace. Pick the workspace you're working in to record transactions."
+        />
+      </PageContainer>
+    );
+  }
+
+  const db = await getDb();
+  const [merchant, program, memberOptions, recent] = await Promise.all([
+    db.getRepository(MerchantEntity).findOneBy({ id: auth.merchantId }),
+    findProgram(db.manager, auth.merchantId),
+    listMemberOptions(auth),
+    listTenantTransactions(auth, { limit: 5 }),
+  ]);
+
+  const unitName =
+    program?.unitName ?? (program?.type === "STAMPS" ? "stamps" : "points");
+  const bullets =
+    program && merchant
+      ? summarizeProgram({
+          type: program.type,
+          unitName: program.unitName,
+          configuration: program.configuration,
+          currency: merchant.currency,
+        })
+      : [];
 
   return (
     <PageContainer>
       <PageHeader
         title="Register"
-        description="Record a purchase and award points in one step. The server recalculates the award from the active program rules."
+        description="Identify the member, enter the purchase, review the server's calculation, then confirm. The balance updates exactly once."
       />
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ReceiptIcon aria-hidden="true" className="size-4" />
-              Record a purchase
-            </CardTitle>
-            <CardDescription>
-              Find the customer, enter the amount, and the points post
-              immediately.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PurchaseForm
-              customers={listCustomers().map((customer) => ({
-                id: customer.id,
-                name: customer.name,
-              }))}
-              earnRate={loyalty.earnRate}
-              minPurchase={loyalty.minPurchase}
-            />
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-3">
+          <PurchaseRegister memberOptions={memberOptions} unitName={unitName} />
+        </div>
 
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
@@ -63,25 +96,25 @@ export default async function RegisterPage() {
                 <ZapIcon aria-hidden="true" className="size-4" />
                 Earning rules
               </CardTitle>
-              <CardDescription>Active program configuration.</CardDescription>
+              <CardDescription>
+                {program
+                  ? `${program.name} · rules v${program.ruleVersion}`
+                  : "No active program yet."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Points per $1</span>
-                <span className="font-medium tabular-nums">
-                  {formatNumber(loyalty.earnRate)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Minimum purchase</span>
-                <span className="font-medium tabular-nums">
-                  ${formatNumber(loyalty.minPurchase)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Program</span>
-                <span className="font-medium">{loyalty.programName}</span>
-              </div>
+              {bullets.length > 0 ? (
+                bullets.map((bullet) => (
+                  <p key={bullet} className="text-muted-foreground">
+                    {bullet}
+                  </p>
+                ))
+              ) : (
+                <p className="text-muted-foreground">
+                  Set up a loyalty program before recording purchases — the
+                  server refuses to award anything without active rules.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -94,33 +127,33 @@ export default async function RegisterPage() {
               <CardDescription>Most recent ledger activity.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2.5">
-              {recent.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
-                  <span className="min-w-0 truncate">
-                    {transaction.customerName}
-                  </span>
-                  <StatusBadge
-                    status={transaction.type}
-                    label={
-                      transaction.type === "earn"
-                        ? "Earn"
-                        : transaction.type === "redeem"
-                          ? "Redeem"
-                          : "Adjust"
-                    }
-                  />
-                  <span
-                    className={`shrink-0 tabular-nums ${
-                      transaction.points < 0 ? "text-destructive" : ""
-                    }`}
+              {recent.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Nothing recorded yet — confirmed purchases appear here.
+                </p>
+              ) : (
+                recent.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between gap-3 text-sm"
                   >
-                    {formatSignedPoints(transaction.points)}
-                  </span>
-                </div>
-              ))}
+                    <span className="min-w-0 truncate">
+                      {entry.customerName}
+                    </span>
+                    <StatusBadge
+                      status={entry.group}
+                      label={TRANSACTION_GROUP_LABELS[entry.group]}
+                    />
+                    <span
+                      className={`shrink-0 tabular-nums ${
+                        entry.delta < 0 ? "text-destructive" : ""
+                      }`}
+                    >
+                      {entry.amountLabel}
+                    </span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>

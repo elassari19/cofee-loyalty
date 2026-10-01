@@ -4,20 +4,40 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { guardedAction, type ActionResult } from "@/auth/action-guard";
+import { requireTenant } from "@/auth/tenant";
 import {
   loadOnboardingState,
   resolveOnboardingTarget,
 } from "@/features/merchants/onboarding";
 import { activateMerchantForLaunch } from "@/features/merchants/service";
+import { getDb } from "@/db/connection";
 import { runInTransaction } from "@/db/transactions";
 import { recordAudit } from "@/lib/audit";
+import { dispatchOutboxSafely } from "@/lib/domain-events";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
 
 import { activateLoyaltyProgram, saveProgramForMerchant } from "./service";
-import type { ProgramFormValues } from "./schemas";
+import {
+  adjustBalance,
+  listMemberOptions,
+  listTenantTransactions,
+  lookupMemberByCard,
+  previewPurchase,
+  recordPurchase,
+  type AdjustmentOutcome,
+  type MemberLookup,
+  type MemberOption,
+  type PurchaseOutcome,
+  type PurchasePreview,
+  type TenantTransactionRow,
+  type TransactionGroup,
+} from "./transactions";
+import type { AdjustmentValues, ProgramFormValues } from "./schemas";
 
 /**
- * Loyalty program server actions (checklist §6 bullets 2–5).
+ * Loyalty program server actions (checklist §6 bullets 2–5) and staff
+ * transaction actions (checklist §8).
  *
  * Two separate operations on purpose: *saving rules* keeps the program a
  * draft (repeatable, resumable), while *activating* is the owner-only launch
@@ -129,4 +149,171 @@ export async function activateProgramAction(): Promise<
     revalidatePath("/dashboard");
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Staff transactions (checklist §8 bullets 4–7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Finds a member from a scanned card / identity token.
+ *
+ * Returns `null` rather than throwing so the register can render an inline
+ * "no member matched" hint instead of toast-spamming a cashier who mistypes a
+ * card. The resolve endpoint is rate limited per IP + tenant; the token itself
+ * is never echoed back (the service returns a bounded, field-limited profile).
+ */
+export async function lookupMemberAction(
+  payload: string,
+): Promise<ActionResult<MemberLookup | null>> {
+  const requestHeaders = await headers();
+
+  return guardedAction("transactions.create", async (auth) => {
+    await enforceRateLimit(
+      "tokenResolve",
+      `${clientIp(requestHeaders)}|${auth.merchantId ?? "none"}`,
+    );
+    return lookupMemberByCard(auth, payload);
+  });
+}
+
+/**
+ * Read-only dry run: same context checks and same engine as the write, so the
+ * confirm screen cannot disagree with what will actually be recorded.
+ */
+export async function previewPurchaseAction(values: {
+  membershipId: string;
+  amount: unknown;
+  currency?: unknown;
+}): Promise<ActionResult<PurchasePreview>> {
+  return guardedAction("transactions.create", async (auth) => {
+    const em = (await getDb()).manager;
+    return previewPurchase(em, auth, values);
+  });
+}
+
+/**
+ * Records the confirmed purchase. The idempotency key is minted by the client
+ * when the review step opens, so a double-submit, a lost response, or an
+ * offline retry resolves to the original entry instead of a second award.
+ *
+ * Audit + outbox dispatch both happen *after* the ledger commit: a rolled-back
+ * write must leave no audit row and no publishable event.
+ */
+export async function submitPurchaseAction(values: {
+  membershipId: string;
+  amount: unknown;
+  currency?: unknown;
+  idempotencyKey: string;
+  externalRef?: string;
+}): Promise<ActionResult<PurchaseOutcome>> {
+  const requestHeaders = await headers();
+
+  const result = await guardedAction("transactions.create", async (auth) => {
+    const merchantId = requireTenant(auth);
+    const outcome = await runInTransaction((em) =>
+      recordPurchase(em, auth, values),
+    );
+
+    if (!outcome.replayed) {
+      await recordAudit({
+        action: "loyalty.earned",
+        resource: "loyalty_transaction",
+        resourceId: outcome.entry.id,
+        merchantId,
+        actorId: auth.userId,
+        actorRole: auth.role,
+        ipAddress: clientIp(requestHeaders),
+        metadata: {
+          entryType: outcome.entry.type,
+          membershipId: outcome.entry.membershipId,
+          delta: outcome.delta,
+          unit: outcome.unit,
+          amount: outcome.amount,
+          currency: outcome.currency,
+          source: "register",
+        },
+      });
+      await dispatchOutboxSafely();
+    }
+    return outcome;
+  });
+
+  if (result.ok) {
+    revalidatePath("/register");
+    revalidatePath("/register/transactions");
+    revalidatePath("/transactions");
+  }
+  return result;
+}
+
+/**
+ * Manual balance adjustment — owner/manager only (`transactions.adjust`,
+ * enforced by the capability guard here *and* by `adjustBalance` itself).
+ * The reason is mandatory in the schema, recorded on the ledger entry, and
+ * written to the audit trail alongside the delta. `idempotencyKey` is minted
+ * when the dialog opens so a double-click posts the same adjustment once.
+ */
+export async function adjustBalanceAction(
+  values: AdjustmentValues & { idempotencyKey: string },
+): Promise<ActionResult<AdjustmentOutcome>> {
+  const requestHeaders = await headers();
+
+  const result = await guardedAction("transactions.adjust", async (auth) => {
+    const merchantId = requireTenant(auth);
+    const outcome = await runInTransaction((em) =>
+      adjustBalance(em, auth, values),
+    );
+
+    if (!outcome.replayed) {
+      await recordAudit({
+        action: "loyalty.adjusted",
+        resource: "loyalty_transaction",
+        resourceId: outcome.entry.id,
+        merchantId,
+        actorId: auth.userId,
+        actorRole: auth.role,
+        ipAddress: clientIp(requestHeaders),
+        metadata: {
+          entryType: outcome.entry.type,
+          membershipId: outcome.entry.membershipId,
+          delta: outcome.delta,
+          unit: outcome.unit,
+          reason: outcome.entry.reason,
+          source: "manual",
+        },
+      });
+      await dispatchOutboxSafely();
+    }
+    return outcome;
+  });
+
+  if (result.ok) {
+    revalidatePath("/register");
+    revalidatePath("/register/transactions");
+    revalidatePath("/transactions");
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Histories (checklist §8 bullets 5 and 8)
+// ---------------------------------------------------------------------------
+
+/** Tenant-wide register/history list — member and purchase fields only. */
+export async function listTransactionsAction(
+  options: { group?: TransactionGroup; limit?: number } = {},
+): Promise<ActionResult<{ rows: TenantTransactionRow[] }>> {
+  return guardedAction("transactions.read", async (auth) => ({
+    rows: await listTenantTransactions(auth, options),
+  }));
+}
+
+/** Member picker for the register/adjustment forms (never raw SQL there). */
+export async function listMemberPickerAction(): Promise<
+  ActionResult<{ options: MemberOption[] }>
+> {
+  return guardedAction("transactions.create", async (auth) => ({
+    options: await listMemberOptions(auth),
+  }));
 }
