@@ -10,18 +10,17 @@ import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { formatDate } from "@/lib/format";
 
-import type { StaffMember } from "@/lib/demo-store";
-import { listStaff } from "@/lib/demo-store";
+import { listStaff } from "@/features/merchants/service";
 
 export const metadata: Metadata = {
   title: "Staff",
 };
 
 export default async function StaffPage() {
-  await requirePageAccess("staff.read");
-  const staff = listStaff();
+  const auth = await requirePageAccess("staff.read");
+  const staff = await listStaff(auth.merchantId!);
 
-  const columns: DataTableColumn<StaffMember>[] = [
+  const columns: DataTableColumn<any>[] = [
     {
       key: "member",
       header: "Team member",
@@ -66,7 +65,7 @@ export default async function StaffPage() {
         description="Who can ring up purchases and redeem rewards at the counter. Invitations and role changes arrive with §10."
         meta={
           <span className="text-muted-foreground text-xs tabular-nums">
-            {staff.filter((member) => member.status === "active").length} active
+            {staff.filter((member: any) => member.status === "active").length} active
             · {staff.length} total
           </span>
         }
@@ -76,7 +75,7 @@ export default async function StaffPage() {
         label="Staff roster"
         columns={columns}
         rows={staff}
-        getRowKey={(member) => member.id}
+        getRowKey={(member: any) => member.id}
         empty={
           <EmptyState
             title="No team members yet"

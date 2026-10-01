@@ -126,13 +126,13 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 10. Merchant Operations: Customers, Staff, Campaigns
 
-- [ ] Build a tenant-scoped customer list with search, filters, pagination, status, membership balance, join date, and last activity.
-- [ ] Build a customer detail view with loyalty history, reward history, and only permitted profile information.
-- [ ] Implement staff invitation, role assignment, activation/deactivation, and merchant-scoped membership management.
-- [ ] Build campaign create/edit/publish/archive flows with start/end time, status, terms, and `ALL_CUSTOMERS` audience for MVP.
-- [ ] Ensure campaign schedule evaluation uses merchant timezone and clearly handles start/end boundaries.
-- [ ] Record campaign participation events needed for future measurement without implementing advanced targeting.
-- [ ] Enforce permissions for every staff-management and campaign action.
+- [x] Build a tenant-scoped customer list with search, filters, pagination, status, membership balance, join date, and last activity.
+- [x] Build a customer detail view with loyalty history, reward history, and only permitted profile information.
+- [x] Implement staff invitation, role assignment, activation/deactivation, and merchant-scoped membership management.
+- [x] Build campaign create/edit/publish/archive flows with start/end time, status, terms, and `ALL_CUSTOMERS` audience for MVP.
+- [x] Ensure campaign schedule evaluation uses merchant timezone and clearly handles start/end boundaries.
+- [x] Record campaign participation events needed for future measurement without implementing advanced targeting.
+- [x] Enforce permissions for every staff-management and campaign action.
 
 **Done when:** Merchant users can manage their own customers, staff, and basic campaigns without access to another merchant's records.
 

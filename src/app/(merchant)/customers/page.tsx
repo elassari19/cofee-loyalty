@@ -11,8 +11,7 @@ import { SearchForm } from "@/components/patterns/search-form";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { formatDate, formatNumber } from "@/lib/format";
 
-import type { Customer } from "@/lib/demo-store";
-import { listCustomers, searchCustomers } from "@/lib/demo-store";
+import { listMerchantCustomers } from "@/features/customers/service";
 
 export const metadata: Metadata = {
   title: "Customers",
@@ -23,14 +22,13 @@ export default async function CustomersPage({
 }: {
   searchParams: Promise<{ q?: string | string[] }>;
 }) {
-  await requirePageAccess("customers.read");
+  const auth = await requirePageAccess("customers.read");
   const query = (await searchParams).q;
   const search = (typeof query === "string" ? query : "").trim();
+  const customers = await listMerchantCustomers(auth.merchantId!, search);
+  const total = search ? (await listMerchantCustomers(auth.merchantId!)).length : customers.length;
 
-  const customers = searchCustomers(search);
-  const total = listCustomers().length;
-
-  const columns: DataTableColumn<Customer>[] = [
+  const columns: DataTableColumn<any>[] = [
     {
       key: "customer",
       header: "Customer",

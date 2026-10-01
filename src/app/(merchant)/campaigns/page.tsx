@@ -10,8 +10,7 @@ import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { formatDate } from "@/lib/format";
 
-import type { Campaign } from "@/lib/demo-store";
-import { listCampaigns } from "@/lib/demo-store";
+import { listCampaigns } from "@/features/campaigns/service";
 
 import { NewCampaignButton } from "./campaign-form";
 
@@ -20,10 +19,10 @@ export const metadata: Metadata = {
 };
 
 export default async function CampaignsPage() {
-  await requirePageAccess("campaigns.read");
-  const campaigns = listCampaigns();
+  const auth = await requirePageAccess("campaigns.read");
+  const campaigns = await listCampaigns({ merchantId: auth.merchantId! });
 
-  const columns: DataTableColumn<Campaign>[] = [
+  const columns: DataTableColumn<any>[] = [
     {
       key: "campaign",
       header: "Campaign",
@@ -39,7 +38,7 @@ export default async function CampaignsPage() {
     {
       key: "audience",
       header: "Audience",
-      cell: (campaign) => campaign.audience,
+      cell: (campaign) => (campaign as any).audience,
     },
     {
       key: "schedule",

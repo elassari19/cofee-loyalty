@@ -208,3 +208,14 @@ async function nextAvailableSlug(
   // makes effectively unique; the unique index still rejects a true collision.
   return `${base}-${Date.now().toString(36)}`;
 }
+
+export async function listStaff(merchantId: string) {
+  const { getDb } = await import("@/db/connection");
+  const db = await getDb();
+  return db.query(`
+    SELECT mm.id, u.email as email, u.name as name, mm.role, mm.status, mm.updated_at as "lastActiveOn"
+    FROM merchant_membership mm
+    JOIN "user" u ON u.id = mm.user_id
+    WHERE mm.merchant_id = $1
+  `, [merchantId]);
+}

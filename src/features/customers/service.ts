@@ -1098,3 +1098,21 @@ export async function updateCustomerProfile(input: {
     return { profile, changedFields, created };
   });
 }
+
+export async function listMerchantCustomers(merchantId: string, search?: string) {
+  const { getDb } = await import("@/db/connection");
+  const db = await getDb();
+  let query = `
+    SELECT cp.id, u.email, cp.name, lm.balance as points, lm.status as tier, lm.status, lm.updated_at as "lastActivityOn", lm.created_at as "joinedOn"
+    FROM customer_profile cp
+    JOIN loyalty_membership lm ON lm.customer_profile_id = cp.id
+    JOIN "user" u ON u.id = cp.user_id
+    WHERE lm.merchant_id = $1
+  `;
+  const params: any[] = [merchantId];
+  if (search) {
+    query += ` AND (u.email ILIKE $2 OR cp.name ILIKE $2)`;
+    params.push(`%${search}%`);
+  }
+  return db.query(query, params);
+}
