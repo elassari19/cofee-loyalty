@@ -858,8 +858,11 @@ async function readBalance(
  * The outbox row, written inside the same transaction as the ledger entry.
  * The key is derived from the entry id: a replayed submission never enqueues
  * a second event for the same row.
+ *
+ * Exported for the redemption settlement path (§9): an expiry refund is a
+ * ledger entry like any other and publishes the same way.
  */
-async function enqueueTransactionEvent(
+export async function enqueueTransactionEvent(
   em: EntityManager,
   input: {
     merchantId: string;

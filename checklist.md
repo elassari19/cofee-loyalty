@@ -112,15 +112,15 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 ## 9. Rewards and Redemption Verification
 
-- [ ] Implement reward create, edit, activate/deactivate, and list operations with tenant scoping and validation.
-- [ ] Support reward cost by loyalty type, description, terms, expiration, and optional redemption limits.
-- [ ] Show customers active rewards, their cost, and whether their membership has sufficient balance.
-- [ ] Create redemption records with secure, short-lived or otherwise appropriately bounded opaque verification codes; store codes safely and prevent guessing.
-- [ ] Atomically validate membership, tenant, reward status, expiration, balance, usage limits, and code state before reserving/redeeming value.
-- [ ] Provide staff code verification and a distinct final redeem action so checking a code does not consume it prematurely.
-- [ ] Make redemption completion single-use and idempotent; prevent double-spend under concurrent requests.
-- [ ] Record who verified/completed a redemption, when it occurred, and associated loyalty ledger entries.
-- [ ] Test expired, invalid, reused, cross-tenant, insufficient-balance, and concurrent redemption attempts.
+- [x] Implement reward create, edit, activate/deactivate, and list operations with tenant scoping and validation.
+- [x] Support reward cost by loyalty type, description, terms, expiration, and optional redemption limits.
+- [x] Show customers active rewards, their cost, and whether their membership has sufficient balance.
+- [x] Create redemption records with secure, short-lived or otherwise appropriately bounded opaque verification codes; store codes safely and prevent guessing.
+- [x] Atomically validate membership, tenant, reward status, expiration, balance, usage limits, and code state before reserving/redeeming value.
+- [x] Provide staff code verification and a distinct final redeem action so checking a code does not consume it prematurely.
+- [x] Make redemption completion single-use and idempotent; prevent double-spend under concurrent requests.
+- [x] Record who verified/completed a redemption, when it occurred, and associated loyalty ledger entries.
+- [x] Test expired, invalid, reused, cross-tenant, insufficient-balance, and concurrent redemption attempts.
 
 **Done when:** A reward can be securely requested by a customer, verified by staff, redeemed once, and reflected in the immutable ledger.
 

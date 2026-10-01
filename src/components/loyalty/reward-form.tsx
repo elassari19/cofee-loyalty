@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 
-import { createRewardAction } from "@/features/rewards/actions";
+import {
+  createRewardAction,
+  updateRewardAction,
+} from "@/features/rewards/actions";
 import {
   emptyRewardFormValues,
   rewardFormSchema,
@@ -19,15 +22,23 @@ import {
 } from "@/components/patterns/form";
 
 /**
- * Initial-reward form (checklist §6 bullet 6). The reward's unit is decided
- * on the server from the merchant's program, so the label here is display
- * only — a crafted payload still lands in the program's own unit.
+ * Reward form for creation *and* editing (checklist §6 bullet 6, §9 bullet 1).
+ *
+ * The reward's unit is decided on the server from the merchant's program, so
+ * the label here is display only — a crafted payload still lands in the
+ * program's own unit, and an edit never changes the unit a reward was priced
+ * in.
+ *
+ * Pass `rewardId` + `defaultValues` to edit; the same fields, validated by
+ * the same schema, go to the update action instead of the create action.
  */
 export function RewardForm({
   unitLabel,
-  submitLabel = "Create reward & continue",
+  submitLabel,
   advance = true,
   onSaved,
+  rewardId,
+  defaultValues,
 }: {
   /** "points" or "stamps" — read from the stored program server-side. */
   unitLabel: string;
@@ -35,13 +46,29 @@ export function RewardForm({
   /** Continue the wizard: push to the `nextPath` the action returned. */
   advance?: boolean;
   onSaved?: (result: { nextPath: string; rewardId: string }) => void;
+  /** Editing when present: the form is pre-filled and calls the update action. */
+  rewardId?: string;
+  defaultValues?: RewardFormValues;
 }) {
   const router = useRouter();
+  const editing = Boolean(rewardId);
   const form = useZodForm(rewardFormSchema, {
-    defaultValues: emptyRewardFormValues(),
+    defaultValues: defaultValues ?? emptyRewardFormValues(),
   });
 
   async function onSubmit(values: RewardFormValues) {
+    if (editing && rewardId) {
+      const result = await updateRewardAction(rewardId, values);
+      if (!result.ok) {
+        notify.error(result.message);
+        return;
+      }
+      notify.success(`“${values.name}” updated.`);
+      onSaved?.({ nextPath: "/rewards", rewardId: result.data.rewardId });
+      router.refresh();
+      return;
+    }
+
     const result = await createRewardAction(values);
     if (!result.ok) {
       notify.error(result.message);
@@ -114,7 +141,8 @@ export function RewardForm({
 
       <FormActions>
         <SubmitButton pending={form.formState.isSubmitting}>
-          {submitLabel}
+          {submitLabel ??
+            (editing ? "Save changes" : "Create reward & continue")}
         </SubmitButton>
       </FormActions>
     </AppForm>

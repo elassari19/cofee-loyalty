@@ -131,6 +131,16 @@ export const envSchema = z.object({
     .positive("RATE_LIMIT_REDEMPTION_WINDOW_SECONDS must be greater than 0")
     .default(60),
   /**
+   * How long a redemption code stays usable (checklist §9 bullet 4 — codes are
+   * "short-lived or otherwise appropriately bounded"). The effective deadline
+   * is the earlier of this window and the reward's own expiry.
+   */
+  REDEMPTION_CODE_TTL_MINUTES: z.coerce
+    .number({ error: "REDEMPTION_CODE_TTL_MINUTES must be a number" })
+    .int("REDEMPTION_CODE_TTL_MINUTES must be an integer")
+    .positive("REDEMPTION_CODE_TTL_MINUTES must be greater than 0")
+    .default(120),
+  /**
    * Block sign-in until the address is verified. Off by default so local
    * development works without a mail provider; turn on in production once a
    * provider is configured (checklist §5, PRD §7).
@@ -188,6 +198,7 @@ export function validateEnv(source: EnvSource = process.env): Env {
     RATE_LIMIT_REDEMPTION_MAX: source.RATE_LIMIT_REDEMPTION_MAX,
     RATE_LIMIT_REDEMPTION_WINDOW_SECONDS:
       source.RATE_LIMIT_REDEMPTION_WINDOW_SECONDS,
+    REDEMPTION_CODE_TTL_MINUTES: source.REDEMPTION_CODE_TTL_MINUTES,
     AUTH_REQUIRE_EMAIL_VERIFICATION: source.AUTH_REQUIRE_EMAIL_VERIFICATION,
   };
 

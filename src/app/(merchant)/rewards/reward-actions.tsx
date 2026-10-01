@@ -3,56 +3,69 @@
 import { useRouter } from "next/navigation";
 import { PauseIcon, PlayIcon } from "lucide-react";
 
-import { setRewardActiveAction } from "@/lib/actions";
-import type { Reward } from "@/lib/demo-store";
+import { setRewardActiveAction } from "@/features/rewards/actions";
+import type { RewardSummary } from "@/features/rewards/schemas";
 import { formatNumber } from "@/lib/format";
 import { ConfirmButton } from "@/components/patterns/confirm";
 
+import { RewardDialog } from "./reward-dialog";
+
 /**
- * Activation toggle (checklist §3 bullet 5): pausing a reward is
- * value-affecting, so it always goes through an explicit confirmation that
- * states the consequence, and the toast reports what actually happened.
- * The button itself stays neutral — pausing is reversible, unlike a
- * redemption that spends a customer's points.
+ * Per-row actions (checklist §9 bullet 1): edit, plus the activation toggle.
+ *
+ * Pausing is value-affecting, so it goes through an explicit confirmation
+ * that states the consequence, and the toast reports what actually happened
+ * — the button itself stays neutral, because pausing is reversible. The
+ * server checks `rewards.write` again, so hiding the button is convenience,
+ * not security.
  */
-export function RewardActions({ reward }: { reward: Reward }) {
+export function RewardActions({
+  reward,
+  unitLabel,
+}: {
+  reward: RewardSummary;
+  unitLabel: string;
+}) {
   const router = useRouter();
-  const activating = !reward.active;
+  const activating = reward.status !== "active";
 
   return (
-    <ConfirmButton
-      size="sm"
-      title={
-        activating ? `Activate “${reward.name}”?` : `Pause “${reward.name}”?`
-      }
-      description={
-        activating
-          ? `Customers will be able to redeem this reward again as soon as it is active.`
-          : `This stops new redemptions of “${reward.name}” immediately. Redemptions already completed are not affected.`
-      }
-      confirmLabel={activating ? "Activate" : "Pause"}
-      onConfirm={async () => {
-        const result = await setRewardActiveAction(reward.id, activating);
-        if (!result.ok) throw new Error(result.message);
-        router.refresh();
-      }}
-      successMessage={
-        activating
-          ? `“${reward.name}” is active — customers can redeem it for ${formatNumber(reward.cost)} points.`
-          : `“${reward.name}” paused. Customers can no longer redeem it.`
-      }
-    >
-      {activating ? (
-        <>
-          <PlayIcon aria-hidden="true" />
-          Activate
-        </>
-      ) : (
-        <>
-          <PauseIcon aria-hidden="true" />
-          Pause
-        </>
-      )}
-    </ConfirmButton>
+    <div className="flex items-center justify-end gap-2">
+      <RewardDialog reward={reward} unitLabel={unitLabel} />
+      <ConfirmButton
+        size="sm"
+        title={
+          activating ? `Activate “${reward.name}”?` : `Pause “${reward.name}”?`
+        }
+        description={
+          activating
+            ? `Customers will be able to request codes for this reward again as soon as it is active.`
+            : `This stops new codes for “${reward.name}” immediately. Codes already issued keep their value and can still be redeemed.`
+        }
+        confirmLabel={activating ? "Activate" : "Pause"}
+        onConfirm={async () => {
+          const result = await setRewardActiveAction(reward.id, activating);
+          if (!result.ok) throw new Error(result.message);
+          router.refresh();
+        }}
+        successMessage={
+          activating
+            ? `“${reward.name}” is active — customers can request it for ${formatNumber(reward.cost)}.`
+            : `“${reward.name}” paused. No new codes will be issued.`
+        }
+      >
+        {activating ? (
+          <>
+            <PlayIcon aria-hidden="true" />
+            Activate
+          </>
+        ) : (
+          <>
+            <PauseIcon aria-hidden="true" />
+            Pause
+          </>
+        )}
+      </ConfirmButton>
+    </div>
   );
 }

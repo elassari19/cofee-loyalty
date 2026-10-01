@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 
 import { requirePageAccess } from "@/auth/guard";
+import { requireTenant } from "@/auth/tenant";
+import { getDb } from "@/db/connection";
+import { unitLabel } from "@/features/loyalty/calculation";
+import { findProgram } from "@/features/loyalty/service";
+import type { RewardSummary } from "@/features/rewards/schemas";
+import { listTenantRewards } from "@/features/rewards/service";
 import {
   DataTable,
   type DataTableColumn,
@@ -8,22 +14,47 @@ import {
 import { EmptyState } from "@/components/patterns/states";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
-import { formatNumber } from "@/lib/format";
-
-import type { Reward } from "@/lib/demo-store";
-import { listRewards } from "@/lib/demo-store";
+import { formatNumber, localDay, formatDate } from "@/lib/format";
 
 import { RewardActions } from "./reward-actions";
+import { RewardDialog } from "./reward-dialog";
 
 export const metadata: Metadata = {
   title: "Rewards",
 };
 
+/**
+ * The merchant's reward catalogue (checklist §9 bullets 1–2, PRD §18).
+ *
+ * Backed by the tenant-scoped `reward` table — create, edit and pause all go
+ * through server actions that resolve the tenant from the session, so a
+ * crafted reward id from another store is a 404 rather than a toggle. The
+ * redemption counter is shown as "issued of limit" because it is exactly
+ * that: codes minted against the reward, not completions.
+ */
 export default async function RewardsPage() {
-  await requirePageAccess("rewards.read");
-  const rewards = listRewards();
+  const auth = await requirePageAccess("rewards.read");
+  const merchantId = requireTenant(auth);
+  const rewards = await listTenantRewards(auth);
 
-  const columns: DataTableColumn<Reward>[] = [
+  const db = await getDb();
+  const program = await findProgram(db.manager, merchantId);
+  const unit = program ? unitLabel(program) : "points";
+
+  const rows: RewardSummary[] = rewards.map((reward) => ({
+    id: reward.id,
+    name: reward.name,
+    description: reward.description,
+    terms: reward.terms,
+    cost: reward.cost,
+    unit: reward.unit,
+    status: reward.status,
+    redemptionCount: reward.redemptionCount,
+    redemptionLimit: reward.redemptionLimit,
+    expiresAt: reward.expiresAt ? reward.expiresAt.toISOString() : null,
+  }));
+
+  const columns: DataTableColumn<RewardSummary>[] = [
     {
       key: "reward",
       header: "Reward",
@@ -31,7 +62,7 @@ export default async function RewardsPage() {
         <div className="flex flex-col">
           <span className="font-medium">{reward.name}</span>
           <span className="text-muted-foreground text-xs">
-            {reward.description}
+            {reward.description ?? reward.terms ?? "—"}
           </span>
         </div>
       ),
@@ -40,29 +71,42 @@ export default async function RewardsPage() {
       key: "cost",
       header: "Cost",
       className: "text-right tabular-nums",
-      cell: (reward) => formatNumber(reward.cost),
+      cell: (reward) => `${formatNumber(reward.cost)} ${unit}`,
     },
     {
       key: "redeemed",
-      header: "Redeemed",
+      header: "Issued",
       className: "text-right tabular-nums",
-      cell: (reward) => formatNumber(reward.redeemed),
+      cell: (reward) =>
+        reward.redemptionLimit === null
+          ? formatNumber(reward.redemptionCount)
+          : `${formatNumber(reward.redemptionCount)} / ${formatNumber(reward.redemptionLimit)}`,
+    },
+    {
+      key: "expires",
+      header: "Expires",
+      cell: (reward) =>
+        reward.expiresAt ? (
+          formatDate(localDay(new Date(reward.expiresAt)))
+        ) : (
+          <span className="text-muted-foreground">Never</span>
+        ),
     },
     {
       key: "status",
       header: "Status",
       cell: (reward) => (
         <StatusBadge
-          status={reward.active ? "active" : "disabled"}
-          label={reward.active ? "Active" : "Paused"}
+          status={reward.status === "active" ? "active" : "disabled"}
+          label={reward.status === "active" ? "Active" : "Paused"}
         />
       ),
     },
     {
       key: "actions",
       header: <span className="sr-only">Actions</span>,
-      headerClassName: "w-36",
-      cell: (reward) => <RewardActions reward={reward} />,
+      headerClassName: "w-56",
+      cell: (reward) => <RewardActions reward={reward} unitLabel={unit} />,
     },
   ];
 
@@ -70,24 +114,28 @@ export default async function RewardsPage() {
     <PageContainer>
       <PageHeader
         title="Rewards"
-        description="What customers can redeem, for how many points. Activating and pausing asks for confirmation and reports the result."
+        description="What customers can request in their portal, and how many codes may be issued for each. Pausing stops new codes; codes already issued keep their value."
         meta={
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {rewards.filter((reward) => reward.active).length} active ·{" "}
-            {rewards.length} total
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-muted-foreground text-xs tabular-nums">
+              {rows.filter((reward) => reward.status === "active").length}{" "}
+              active · {rows.length} total
+            </span>
+            <RewardDialog unitLabel={unit} />
+          </div>
         }
       />
 
       <DataTable
         label="Rewards"
         columns={columns}
-        rows={rewards}
+        rows={rows}
         getRowKey={(reward) => reward.id}
         empty={
           <EmptyState
             title="No rewards yet"
-            description="Create the first reward once the data layer lands in §4; the activation flow is ready."
+            description="Create the first reward — customers will see it in their portal as soon as it is active."
+            action={<RewardDialog unitLabel={unit} />}
           />
         }
       />

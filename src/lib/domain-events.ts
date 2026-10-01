@@ -47,7 +47,10 @@ import { getLogger } from "@/lib/logger";
  */
 
 /** Closed domain of event types — adding one is a reviewed code change. */
-export const DOMAIN_EVENT_TYPES = ["loyalty.transaction.created"] as const;
+export const DOMAIN_EVENT_TYPES = [
+  "loyalty.transaction.created",
+  "reward.redeemed",
+] as const;
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 
 /** Give up after this many deliveries; the row stays visible as `FAILED`. */

@@ -41,6 +41,41 @@ export const rewardFormSchema = z.object({
 
 export type RewardFormValues = z.infer<typeof rewardFormSchema>;
 
+/**
+ * The reward fields a client component needs to render or edit one — plain
+ * JSON so it crosses the server → client boundary without entity classes or
+ * live `Date` objects (`expiresAt` is an ISO string or `null`).
+ */
+export interface RewardSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  terms: string | null;
+  cost: number;
+  unit: string;
+  status: "active" | "inactive";
+  redemptionCount: number;
+  redemptionLimit: number | null;
+  expiresAt: string | null;
+}
+
+/** Edit-form defaults for an existing reward — the inverse of `create`. */
+export function rewardFormValues(
+  reward: Pick<
+    RewardSummary,
+    "name" | "description" | "terms" | "cost" | "expiresAt" | "redemptionLimit"
+  >,
+): RewardFormValues {
+  return {
+    name: reward.name,
+    description: reward.description ?? "",
+    cost: reward.cost,
+    terms: reward.terms ?? "",
+    expiresAt: reward.expiresAt ? reward.expiresAt.slice(0, 10) : "",
+    redemptionLimit: reward.redemptionLimit,
+  };
+}
+
 export function emptyRewardFormValues(): RewardFormValues {
   return {
     name: "",

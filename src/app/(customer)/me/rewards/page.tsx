@@ -18,17 +18,20 @@ import {
 import { formatDate, formatNumber, localDay } from "@/lib/format";
 
 import { loadMembershipState, renderMembership } from "../state";
+import { RedeemButton } from "./redeem-button";
 
 export const metadata: Metadata = {
   title: "Rewards",
 };
 
 /**
- * The member's reward catalogue (checklist §7 bullet 5).
+ * The member's reward catalogue (checklist §7 bullet 5, §9 bullet 3).
  *
- * Read-only by design: issuing a redemption is the ledger/redemption flow of
- * §9, so this screen reports what the balance can reach and how far away the
- * rest are — it never mutates a balance itself.
+ * Each card reports cost, terms, expiry and — the point of §9 bullet 3 —
+ * whether the member's balance reaches it, with the exact shortfall when it
+ * does not. Requesting a code is the one mutation this screen offers; it goes
+ * through `issueRedemptionAction`, which reserves the value under the
+ * membership lock and returns an opaque code exactly once.
  */
 export default async function CustomerRewardsPage() {
   const auth = await requirePageAccess("rewards.read");
@@ -82,7 +85,7 @@ async function Rewards({ ctx }: { ctx: CustomerContext }) {
                 <CardContent className="mt-auto flex flex-col gap-2">
                   <p className="text-sm">
                     {reward.affordable ? (
-                      <>Ready to redeem — show your card at the counter.</>
+                      <>Request a code, then show it at the counter.</>
                     ) : (
                       <span className="text-muted-foreground">
                         You need {formatNumber(reward.shortage ?? 0)} more{" "}
@@ -100,6 +103,13 @@ async function Rewards({ ctx }: { ctx: CustomerContext }) {
                       Available until {formatDate(localDay(reward.expiresAt))}
                     </p>
                   ) : null}
+                  <RedeemButton
+                    rewardId={reward.id}
+                    rewardName={reward.name}
+                    cost={reward.cost}
+                    unitLabel={unit}
+                    affordable={reward.affordable}
+                  />
                 </CardContent>
               </Card>
             </li>

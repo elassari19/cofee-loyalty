@@ -6,21 +6,16 @@ import { guardedAction, type ActionResult } from "@/auth/action-guard";
 import {
   addCampaign,
   getOwnProfile,
-  redeemReward,
-  setRewardActive,
   updateOwnProfile,
   type Campaign,
   type OwnProfile,
-  type Reward,
 } from "@/lib/demo-store";
 import {
   campaignSchema,
   parseInput,
   profileSchema,
-  redeemSchema,
   type CampaignValues,
   type ProfileValues,
-  type RedeemValues,
 } from "@/lib/schemas";
 
 /**
@@ -32,9 +27,11 @@ import {
  * rejected. Results are returned, not thrown, so the UI can state exactly what
  * happened — including "nothing was changed".
  *
- * Business settings, loyalty rules and purchase entry are no longer here: §6
- * and §8 rewired all three to the database through
- * `@/features/merchants/actions` and `@/features/loyalty/actions`.
+ * Business settings, loyalty rules, purchase entry and rewards are no longer
+ * here: §6 and §8 rewired the first three to the database through
+ * `@/features/merchants/actions` and `@/features/loyalty/actions`, and §9
+ * replaced the demo reward actions with the tenant-scoped, audited ones in
+ * `@/features/rewards/actions` and `@/features/redemptions/actions`.
  */
 
 export async function createCampaign(
@@ -45,38 +42,6 @@ export async function createCampaign(
     const campaign = addCampaign(parsed);
     revalidatePath("/campaigns");
     return campaign;
-  });
-}
-
-export async function setRewardActiveAction(
-  rewardId: string,
-  active: boolean,
-): Promise<ActionResult<Reward>> {
-  return guardedAction("rewards.write", () => {
-    const reward = setRewardActive(rewardId, active);
-    revalidatePath("/rewards");
-    return reward;
-  });
-}
-
-export async function redeemRewardAction(
-  values: RedeemValues,
-): Promise<
-  ActionResult<{ customerName: string; rewardName: string; balance: number }>
-> {
-  return guardedAction("rewards.redeem", (auth) => {
-    const parsed = parseInput(redeemSchema, values);
-    // Customers may only redeem against their own membership; staff pick a
-    // customer at the register. Enforced here, not in the hidden UI.
-    if (auth.role === "CUSTOMER" && parsed.customerId !== "cus_maya") {
-      throw new Error("You can only redeem rewards from your own account.");
-    }
-    const result = redeemReward(parsed.rewardId, parsed.customerId);
-    revalidatePath("/rewards");
-    revalidatePath("/register/rewards");
-    revalidatePath("/me");
-    revalidatePath("/me/rewards");
-    return result;
   });
 }
 
