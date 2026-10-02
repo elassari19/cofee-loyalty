@@ -156,7 +156,9 @@ export interface GamificationMechanicEvaluator {
    * Evaluate whether the event satisfies this mechanic and return an award
    * decision. Must not throw — a throwing evaluator returns `award: false`.
    */
-  evaluate(context: GamificationEvaluationContext): Promise<GamificationDecision>;
+  evaluate(
+    context: GamificationEvaluationContext,
+  ): Promise<GamificationDecision>;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,7 +200,10 @@ export function registerGamificationEvaluator(
   evaluator: GamificationMechanicEvaluator,
 ): void {
   evaluators.set(evaluator.kind, evaluator);
-  getLogger().info({ kind: evaluator.kind }, "gamification evaluator registered");
+  getLogger().info(
+    { kind: evaluator.kind },
+    "gamification evaluator registered",
+  );
 }
 
 /** Get the evaluator for a mechanic kind. */

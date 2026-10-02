@@ -122,10 +122,7 @@ export interface WalletAdapter {
    * `providerPassId` is looked up from `integration_record` by the caller
    * before invoking this method.
    */
-  updatePass(
-    providerPassId: string,
-    data: WalletPassData,
-  ): Promise<void>;
+  updatePass(providerPassId: string, data: WalletPassData): Promise<void>;
 
   /**
    * Revokes a pass. Called when a customer closes their membership or
@@ -143,10 +140,7 @@ const adapters = new Map<WalletProvider, WalletAdapter>();
 /** Install a concrete wallet adapter (called during bootstrap). */
 export function registerWalletAdapter(adapter: WalletAdapter): void {
   adapters.set(adapter.provider, adapter);
-  getLogger().info(
-    { provider: adapter.provider },
-    "wallet adapter registered",
-  );
+  getLogger().info({ provider: adapter.provider }, "wallet adapter registered");
 }
 
 /** Return the adapter for a provider, or undefined if not configured. */
@@ -195,7 +189,10 @@ class StubWalletAdapter implements WalletAdapter {
     };
   }
 
-  async updatePass(providerPassId: string, data: WalletPassData): Promise<void> {
+  async updatePass(
+    providerPassId: string,
+    data: WalletPassData,
+  ): Promise<void> {
     getLogger().debug(
       { provider: this.provider, providerPassId, balance: data.balance },
       "stub wallet adapter: updatePass (no-op)",

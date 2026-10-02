@@ -25,7 +25,10 @@ export async function getCampaign(merchantId: string, campaignId: string) {
   return campaign;
 }
 
-export async function createCampaign(merchantId: string, data: Partial<Campaign>) {
+export async function createCampaign(
+  merchantId: string,
+  data: Partial<Campaign>,
+) {
   return runInTransaction(async (em) => {
     const result = await em.insert(CampaignEntity, {
       ...data,
@@ -36,15 +39,25 @@ export async function createCampaign(merchantId: string, data: Partial<Campaign>
   });
 }
 
-export async function updateCampaign(merchantId: string, campaignId: string, data: Partial<Campaign>) {
+export async function updateCampaign(
+  merchantId: string,
+  campaignId: string,
+  data: Partial<Campaign>,
+) {
   return runInTransaction(async (em) => {
-    const campaign = await em.findOne(CampaignEntity, { where: { id: campaignId, merchantId } });
+    const campaign = await em.findOne(CampaignEntity, {
+      where: { id: campaignId, merchantId },
+    });
     if (!campaign) throw new NotFoundError("Campaign not found");
 
-    await em.update(CampaignEntity, { id: campaignId }, {
-      ...data,
-      configuration: data.configuration as any,
-    });
+    await em.update(
+      CampaignEntity,
+      { id: campaignId },
+      {
+        ...data,
+        configuration: data.configuration as any,
+      },
+    );
   });
 }
 
@@ -56,9 +69,14 @@ export async function updateCampaign(merchantId: string, campaignId: string, dat
  * future analytics pipelines to react to a campaign going live without querying
  * the campaign table directly or coupling to the loyalty ledger.
  */
-export async function publishCampaign(merchantId: string, campaignId: string): Promise<Campaign> {
+export async function publishCampaign(
+  merchantId: string,
+  campaignId: string,
+): Promise<Campaign> {
   return runInTransaction(async (em) => {
-    const campaign = await em.findOne(CampaignEntity, { where: { id: campaignId, merchantId } });
+    const campaign = await em.findOne(CampaignEntity, {
+      where: { id: campaignId, merchantId },
+    });
     if (!campaign) throw new NotFoundError("Campaign not found");
     if (campaign.status === "ACTIVE") return campaign; // idempotent
     if (campaign.status === "ENDED" || campaign.status === "ARCHIVED") {
@@ -98,16 +116,28 @@ export async function archiveCampaign(
   targetStatus: "ENDED" | "ARCHIVED" = "ARCHIVED",
 ): Promise<Campaign> {
   return runInTransaction(async (em) => {
-    const campaign = await em.findOne(CampaignEntity, { where: { id: campaignId, merchantId } });
+    const campaign = await em.findOne(CampaignEntity, {
+      where: { id: campaignId, merchantId },
+    });
     if (!campaign) throw new NotFoundError("Campaign not found");
     if (campaign.status === targetStatus) return campaign; // idempotent
 
     const terminalStatuses = ["ENDED", "ARCHIVED"] as const;
-    if (!["ACTIVE", "SCHEDULED", "DRAFT", ...terminalStatuses].includes(campaign.status)) {
-      throw new ConflictError(`Campaign in status ${campaign.status} cannot be archived.`);
+    if (
+      !["ACTIVE", "SCHEDULED", "DRAFT", ...terminalStatuses].includes(
+        campaign.status,
+      )
+    ) {
+      throw new ConflictError(
+        `Campaign in status ${campaign.status} cannot be archived.`,
+      );
     }
 
-    await em.update(CampaignEntity, { id: campaignId }, { status: targetStatus });
+    await em.update(
+      CampaignEntity,
+      { id: campaignId },
+      { status: targetStatus },
+    );
     campaign.status = targetStatus;
 
     // Emit for every terminal transition (ENDED or ARCHIVED), so downstream
@@ -130,11 +160,13 @@ export async function archiveCampaign(
 
 export async function deleteCampaign(merchantId: string, campaignId: string) {
   return runInTransaction(async (em) => {
-    const campaign = await em.findOne(CampaignEntity, { where: { id: campaignId, merchantId } });
+    const campaign = await em.findOne(CampaignEntity, {
+      where: { id: campaignId, merchantId },
+    });
     if (!campaign) throw new NotFoundError("Campaign not found");
-    if (campaign.status === "ACTIVE") throw new ForbiddenError("Cannot delete an active campaign");
+    if (campaign.status === "ACTIVE")
+      throw new ForbiddenError("Cannot delete an active campaign");
 
     await em.delete(CampaignEntity, { id: campaignId });
   });
 }
-

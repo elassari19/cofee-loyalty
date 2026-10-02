@@ -164,7 +164,6 @@ This checklist turns the PRD into sequenced engineering work. Complete the Phase
 
 **Done when:** Core MVP workflows operate without external providers, while documented contracts and data boundaries permit future integrations without rewriting the loyalty ledger.
 
-
 ## 13. Testing and Quality Gates
 
 - [ ] Add integration tests against PostgreSQL for TypeORM migrations, tenant-scoped queries, transactions, constraints, and ledger consistency.

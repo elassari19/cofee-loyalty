@@ -36,11 +36,7 @@ import { getLogger } from "@/lib/logger";
 // ---------------------------------------------------------------------------
 
 /** Closed set of supported notification channels. */
-export const NOTIFICATION_CHANNELS = [
-  "whatsapp",
-  "sms",
-  "push",
-] as const;
+export const NOTIFICATION_CHANNELS = ["whatsapp", "sms", "push"] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /** Closed set of notification kinds — drives template selection. */
@@ -253,7 +249,9 @@ class StubNotificationAdapter implements NotificationChannelAdapter {
     return false;
   }
 
-  async send(message: NotificationMessage): Promise<{ providerMessageId: string }> {
+  async send(
+    message: NotificationMessage,
+  ): Promise<{ providerMessageId: string }> {
     const logger = getLogger();
     if (process.env.NODE_ENV !== "production") {
       logger.debug(

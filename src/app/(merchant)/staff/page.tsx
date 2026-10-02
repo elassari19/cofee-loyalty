@@ -65,8 +65,8 @@ export default async function StaffPage() {
         description="Who can ring up purchases and redeem rewards at the counter. Invitations and role changes arrive with §10."
         meta={
           <span className="text-muted-foreground text-xs tabular-nums">
-            {staff.filter((member: any) => member.status === "active").length} active
-            · {staff.length} total
+            {staff.filter((member: any) => member.status === "active").length}{" "}
+            active · {staff.length} total
           </span>
         }
       />

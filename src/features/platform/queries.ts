@@ -7,7 +7,7 @@ export async function getPlatformMetrics() {
   const db = await getDb();
 
   const merchants = await db.getRepository(MerchantEntity).count();
-  
+
   const active = await db.getRepository(MerchantEntity).count({
     where: { status: "active" },
   });
@@ -28,7 +28,7 @@ export async function getPlatformMetrics() {
 
 export async function getRecentMerchants() {
   const db = await getDb();
-  
+
   const raw = await db
     .getRepository(MerchantEntity)
     .createQueryBuilder("m")
@@ -43,7 +43,7 @@ export async function getRecentMerchants() {
     .limit(4)
     .getRawMany();
 
-  return raw.map(r => ({
+  return raw.map((r) => ({
     id: r.id,
     name: r.name,
     slug: r.slug,

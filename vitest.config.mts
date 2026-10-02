@@ -14,7 +14,9 @@ export default defineConfig({
     include: [
       "src/**/*.{test,spec}.{ts,tsx}",
       "scripts/**/*.{test,spec}.ts",
-      "tests/**/*.{test,spec}.{ts,tsx}",
+      "tests/integration/**/*.{test,spec}.{ts,tsx}",
+      "tests/helpers/**/*.{test,spec}.{ts,tsx}",
+      "tests/smoke/**/*.{test,spec}.{ts,tsx}",
     ],
     // Test-only configuration so modules that read `process.env` at import time
     // (TypeORM DataSource, health checks) load without a developer's `.env`.

@@ -31,7 +31,12 @@ import { getLogger } from "@/lib/logger";
 // POS provider types
 // ---------------------------------------------------------------------------
 
-export const POS_PROVIDERS = ["square", "toast", "lightspeed", "generic"] as const;
+export const POS_PROVIDERS = [
+  "square",
+  "toast",
+  "lightspeed",
+  "generic",
+] as const;
 export type PosProvider = (typeof POS_PROVIDERS)[number];
 
 // ---------------------------------------------------------------------------

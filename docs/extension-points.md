@@ -10,18 +10,18 @@
 
 ## TL;DR — What is implemented vs. future
 
-| Capability | Extension point | Phase 1 status |
-|---|---|---|
-| Domain events / outbox | Full durable outbox, 5 event types | ✅ Implemented |
-| Wallet (Apple / Google) | `WalletAdapter` interface + stub | 🔲 Interface only |
-| POS integrations | `PosAdapter` interface + stub | 🔲 Interface only |
-| WhatsApp / SMS / Push | `NotificationChannelAdapter` + stub | 🔲 Interface only |
-| Gamification | `GamificationMechanicEvaluator` + stub dispatcher | 🔲 Interface only |
-| AI / predictive analytics | `AnalyticsProvider` + governance contracts | 🔲 Interface only |
-| Provider identity mapping | `integration_record` table | ✅ Implemented |
-| External POS ref dedup | `loyalty_transaction.external_ref` UNIQUE | ✅ Implemented |
-| Subscription architecture | `subscription` table + plan limits | ✅ Implemented |
-| Email (transactional) | `EmailProvider` adapter + local stub | ✅ Implemented |
+| Capability                | Extension point                                   | Phase 1 status    |
+| ------------------------- | ------------------------------------------------- | ----------------- |
+| Domain events / outbox    | Full durable outbox, 5 event types                | ✅ Implemented    |
+| Wallet (Apple / Google)   | `WalletAdapter` interface + stub                  | 🔲 Interface only |
+| POS integrations          | `PosAdapter` interface + stub                     | 🔲 Interface only |
+| WhatsApp / SMS / Push     | `NotificationChannelAdapter` + stub               | 🔲 Interface only |
+| Gamification              | `GamificationMechanicEvaluator` + stub dispatcher | 🔲 Interface only |
+| AI / predictive analytics | `AnalyticsProvider` + governance contracts        | 🔲 Interface only |
+| Provider identity mapping | `integration_record` table                        | ✅ Implemented    |
+| External POS ref dedup    | `loyalty_transaction.external_ref` UNIQUE         | ✅ Implemented    |
+| Subscription architecture | `subscription` table + plan limits                | ✅ Implemented    |
+| Email (transactional)     | `EmailProvider` adapter + local stub              | ✅ Implemented    |
 
 ---
 
@@ -38,20 +38,22 @@
 
 **Event types (Phase 1):**
 
-| Event type | Payload | Fired by |
-|---|---|---|
-| `customer.enrolled` | `{ membershipId, loyaltyType }` | Customer enrollment flow |
-| `loyalty.transaction.created` | `{ delta, unit, type, membershipId }` | Ledger `appendLedgerEntry` |
-| `reward.redeemed` | `{ redemptionId, rewardId, pointsUsed }` | Redemption complete action |
-| `campaign.started` | `{ campaignId, audienceType }` | Campaign status transition |
-| `campaign.ended` | `{ campaignId }` | Campaign status transition |
+| Event type                    | Payload                                  | Fired by                   |
+| ----------------------------- | ---------------------------------------- | -------------------------- |
+| `customer.enrolled`           | `{ membershipId, loyaltyType }`          | Customer enrollment flow   |
+| `loyalty.transaction.created` | `{ delta, unit, type, membershipId }`    | Ledger `appendLedgerEntry` |
+| `reward.redeemed`             | `{ redemptionId, rewardId, pointsUsed }` | Redemption complete action |
+| `campaign.started`            | `{ campaignId, audienceType }`           | Campaign status transition |
+| `campaign.ended`              | `{ campaignId }`                         | Campaign status transition |
 
 **Adding a new event type:**
+
 1. Add the string to `DOMAIN_EVENT_TYPES` in `src/lib/domain-events.ts`.
 2. Run the migration to update the `ck_domain_event_outbox_event_type` CHECK.
 3. Add a `registerDomainEventHandler` call for any consumer.
 
 **Constraints:**
+
 - Event handlers MUST NOT write loyalty balances or redemptions.
 - Payloads carry tenant context (`merchantId`) and stable IDs — no raw PII.
 - Payloads are versioned by the event type; breaking changes require a new type.
@@ -76,10 +78,12 @@ integration_record
 ```
 
 **Adding a new integration entity type:**
+
 1. Add the value to `INTEGRATION_ENTITY_TYPES` in `src/db/entities/enums.ts`.
 2. Migrate the `ck_integration_record_entity_type` CHECK constraint.
 
 **Constraints:**
+
 - `UNIQUE (provider, merchantId, externalId)` prevents duplicate mappings.
 - Core tables (`customer_profile`, `loyalty_membership`, `loyalty_transaction`)
   never gain provider-specific columns.
@@ -96,6 +100,7 @@ integration_record
 - `WalletPassData` — the data contract the adapter receives (no PII, no DB access)
 
 **What is NOT built (future work):**
+
 - Apple Pass Type ID, signing certificates, `.pkpass` generation
 - Google Pay API credentials, JWT signing, Google Wallet Objects API
 - Device push notifications for pass updates
@@ -105,7 +110,10 @@ integration_record
 
 ```typescript
 // 1. Create a concrete adapter
-import { type WalletAdapter, registerWalletAdapter } from "@/integrations/wallet";
+import {
+  type WalletAdapter,
+  registerWalletAdapter,
+} from "@/integrations/wallet";
 
 class AppleWalletAdapter implements WalletAdapter {
   readonly provider = "apple" as const;
@@ -125,6 +133,7 @@ registerDomainEventHandler("loyalty.transaction.created", async (event) => {
 ```
 
 **Invariants:**
+
 - Wallet-specific logic MUST NOT appear in `loyalty_transaction`, `reward`,
   `customer_profile`, or `loyalty_membership` entities.
 - The stable link between a pass and the platform is always `loyaltyMembershipId`
@@ -143,6 +152,7 @@ registerDomainEventHandler("loyalty.transaction.created", async (event) => {
 - `registerPosAdapter(adapter)` / `getPosAdapter(provider)` registry
 
 **What is NOT built (future work):**
+
 - Square, Toast, Lightspeed, or generic POS credentials / webhook registration
 - Reconciliation job (cron / queue worker)
 - POS customer-to-platform-customer linking UI
@@ -169,6 +179,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 ```
 
 **Invariants:**
+
 - POS adapters MUST NOT write to `loyalty_transaction` directly.
 - Payment card data MUST be stripped in `parseInboundEvent` before returning.
 - `externalRef` must be the provider's own stable transaction ID (not an order ID
@@ -189,6 +200,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 - `registerNotificationAdapter(adapter)` / `getNotificationAdapter(channel)` registry
 
 **What is NOT built (future work):**
+
 - WhatsApp Business API credentials / number registration
 - SMS provider (Twilio, AWS SNS, etc.) credentials
 - Push provider (FCM, APNs) credentials
@@ -198,6 +210,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 - Unsubscribe handling UI
 
 **Consent invariants:**
+
 - `canSend()` MUST be called before `send()`.
 - Marketing messages (`campaign.started`, `campaign.offer`) require
   `consent.marketing === true`.
@@ -220,6 +233,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 - `registerGamificationEvaluator(evaluator)` / `setGamificationDispatcher(d)` registry
 
 **What is NOT built (future work):**
+
 - `gamification_mechanic` database table and migration
 - `gamification_award` audit table
 - Badge image storage
@@ -230,6 +244,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 - Anti-abuse rate-limit per customer per mechanic
 
 **Invariants:**
+
 - Evaluators MUST return a decision (`award: true | false`) — they MUST NOT
   call the loyalty service directly.
 - The dispatcher calls `earnPoints` / `earnStamps` (not `appendLedgerEntry`)
@@ -252,6 +267,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 - `setAnalyticsProvider(provider)` / `getAnalyticsProvider()` registry
 
 **What is NOT built (future work):**
+
 - Model training pipelines
 - Vector databases or embedding stores
 - Recommendation engine
@@ -261,6 +277,7 @@ registerPosAdapter(new SquarePosAdapter(squareConfig));
 - Cross-tenant authorization UI
 
 **Hard invariants (enforced architecturally):**
+
 - AI modules MUST NOT write to `loyalty_transaction`, `reward_redemption`,
   or `campaign` rows. All resulting actions pass through existing authorization
   and business-rule validation paths.
@@ -298,6 +315,6 @@ itself) is stored.
 
 ## Change log
 
-| Date | Change | Author |
-|---|---|---|
+| Date    | Change                                            | Author        |
+| ------- | ------------------------------------------------- | ------------- |
 | Phase 1 | Initial documentation of all §12 extension points | Platform team |

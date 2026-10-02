@@ -20,7 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getMerchantAnalytics, getMerchantMonthlyPoints, getRewardPerformance } from "@/features/analytics/queries";
+import {
+  getMerchantAnalytics,
+  getMerchantMonthlyPoints,
+  getRewardPerformance,
+} from "@/features/analytics/queries";
 import { formatNumber, formatPercent } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -29,22 +33,42 @@ export const metadata: Metadata = {
 
 export default async function MerchantAnalyticsPage() {
   const auth = await requirePageAccess("analytics.read");
-  
+
   // In preview mode merchantId might be null, fallback to a query that works or a known ID.
   // We'll require a valid merchantId for real DB queries.
-  let metrics = { activeCustomers: 0, pointsIssued: 0, pointsRedeemed: 0, redemptions: 0, redemptionRate: 0 };
+  let metrics = {
+    activeCustomers: 0,
+    pointsIssued: 0,
+    pointsRedeemed: 0,
+    redemptions: 0,
+    redemptionRate: 0,
+  };
   let monthly: { month: string; pointsIssued: number }[] = [];
-  let rewards: { id: string; name: string; cost: number; active: boolean; redeemed: number }[] = [];
-  
+  let rewards: {
+    id: string;
+    name: string;
+    cost: number;
+    active: boolean;
+    redeemed: number;
+  }[] = [];
+
   if (auth.merchantId) {
     metrics = await getMerchantAnalytics(auth.merchantId);
     monthly = await getMerchantMonthlyPoints(auth.merchantId);
     rewards = await getRewardPerformance(auth.merchantId);
   } else {
     // Demo fallback for preview roles
-    metrics = { activeCustomers: 1284, pointsIssued: 35400, pointsRedeemed: 12000, redemptions: 80, redemptionRate: 0.15 };
+    metrics = {
+      activeCustomers: 1284,
+      pointsIssued: 35400,
+      pointsRedeemed: 12000,
+      redemptions: 80,
+      redemptionRate: 0.15,
+    };
     monthly = [{ month: "Sep", pointsIssued: 35400 }];
-    rewards = [{ id: "r1", name: "Free latte", cost: 500, active: true, redeemed: 38 }];
+    rewards = [
+      { id: "r1", name: "Free latte", cost: 500, active: true, redeemed: 38 },
+    ];
   }
 
   const maxPoints = Math.max(...monthly.map((entry) => entry.pointsIssued), 1);

@@ -1122,7 +1122,10 @@ export async function updateCustomerProfile(input: {
   });
 }
 
-export async function listMerchantCustomers(merchantId: string, search?: string) {
+export async function listMerchantCustomers(
+  merchantId: string,
+  search?: string,
+) {
   const { getDb } = await import("@/db/connection");
   const db = await getDb();
   let query = `

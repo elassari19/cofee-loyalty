@@ -26,7 +26,9 @@ export default async function CustomersPage({
   const query = (await searchParams).q;
   const search = (typeof query === "string" ? query : "").trim();
   const customers = await listMerchantCustomers(auth.merchantId!, search);
-  const total = search ? (await listMerchantCustomers(auth.merchantId!)).length : customers.length;
+  const total = search
+    ? (await listMerchantCustomers(auth.merchantId!)).length
+    : customers.length;
 
   const columns: DataTableColumn<any>[] = [
     {

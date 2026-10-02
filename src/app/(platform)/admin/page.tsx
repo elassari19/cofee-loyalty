@@ -29,7 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getPlatformMetrics, getRecentMerchants } from "@/features/platform/queries";
+import {
+  getPlatformMetrics,
+  getRecentMerchants,
+} from "@/features/platform/queries";
 import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {

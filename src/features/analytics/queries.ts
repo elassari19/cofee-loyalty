@@ -31,7 +31,7 @@ export async function getMerchantAnalytics(merchantId: string) {
   for (const t of transactions) {
     const sum = parseInt(t.sum ?? "0", 10);
     const count = parseInt(t.count ?? "0", 10);
-    
+
     if (t.type.endsWith("_EARNED")) {
       pointsIssued += sum;
       earns += count;
@@ -55,7 +55,7 @@ export async function getMerchantAnalytics(merchantId: string) {
 
 export async function getMerchantMonthlyPoints(merchantId: string) {
   const db = await getDb();
-  
+
   // A simple grouping by month
   const raw = await db
     .getRepository(LoyaltyTransactionEntity)
@@ -84,7 +84,7 @@ export async function getRewardPerformance(merchantId: string) {
     .leftJoin(
       "reward_redemption",
       "redemption",
-      "redemption.reward_id = reward.id AND redemption.status = 'REDEEMED'"
+      "redemption.reward_id = reward.id AND redemption.status = 'REDEEMED'",
     )
     .select("reward.id", "id")
     .addSelect("reward.name", "name")
@@ -96,7 +96,7 @@ export async function getRewardPerformance(merchantId: string) {
     .limit(5)
     .getRawMany();
 
-  return rewards.map(r => ({
+  return rewards.map((r) => ({
     id: r.id,
     name: r.name,
     cost: parseInt(r.cost, 10),
