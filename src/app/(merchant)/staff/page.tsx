@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Building2Icon } from "lucide-react";
 
 import { requirePageAccess } from "@/auth/guard";
 import {
@@ -8,6 +10,7 @@ import {
 import { EmptyState } from "@/components/patterns/states";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 
 import { listStaff } from "@/features/merchants/service";
@@ -18,7 +21,29 @@ export const metadata: Metadata = {
 
 export default async function StaffPage() {
   const auth = await requirePageAccess("staff.read");
-  const staff = await listStaff(auth.merchantId!);
+
+  if (!auth.merchantId) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Staff"
+          description="Who can ring up purchases and redeem rewards at the counter. Invitations and role changes arrive with §10."
+        />
+        <EmptyState
+          icon={Building2Icon}
+          title="No active workspace"
+          description="Staff belong to a business workspace. Pick the workspace you're working in — preview contexts and accounts without an active membership land here too."
+          action={
+            <Button render={<Link href="/choose-merchant" />}>
+              Choose a workspace
+            </Button>
+          }
+        />
+      </PageContainer>
+    );
+  }
+
+  const staff = await listStaff(auth.merchantId);
 
   const columns: DataTableColumn<any>[] = [
     {

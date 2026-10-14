@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Building2Icon } from "lucide-react";
 
 import { requirePageAccess } from "@/auth/guard";
-import { requireTenant } from "@/auth/tenant";
 import { getDb } from "@/db/connection";
 import { unitLabel } from "@/features/loyalty/calculation";
 import { findProgram } from "@/features/loyalty/service";
@@ -14,6 +15,7 @@ import {
 import { EmptyState } from "@/components/patterns/states";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { Button } from "@/components/ui/button";
 import { formatNumber, localDay, formatDate } from "@/lib/format";
 
 import { RewardActions } from "./reward-actions";
@@ -34,7 +36,29 @@ export const metadata: Metadata = {
  */
 export default async function RewardsPage() {
   const auth = await requirePageAccess("rewards.read");
-  const merchantId = requireTenant(auth);
+
+  if (!auth.merchantId) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Rewards"
+          description="What customers can request in their portal, and how many codes may be issued for each. Pausing stops new codes; codes already issued keep their value."
+        />
+        <EmptyState
+          icon={Building2Icon}
+          title="No active workspace"
+          description="Rewards belong to a business workspace. Pick the workspace you're working in — preview contexts and accounts without an active membership land here too."
+          action={
+            <Button render={<Link href="/choose-merchant" />}>
+              Choose a workspace
+            </Button>
+          }
+        />
+      </PageContainer>
+    );
+  }
+
+  const merchantId = auth.merchantId;
   const rewards = await listTenantRewards(auth);
 
   const db = await getDb();

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Building2Icon } from "lucide-react";
 
 import { requirePageAccess } from "@/auth/guard";
 import {
@@ -9,6 +11,7 @@ import { EmptyState } from "@/components/patterns/states";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { SearchForm } from "@/components/patterns/search-form";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { Button } from "@/components/ui/button";
 import { formatDate, formatNumber } from "@/lib/format";
 
 import { listMerchantCustomers } from "@/features/customers/service";
@@ -25,9 +28,32 @@ export default async function CustomersPage({
   const auth = await requirePageAccess("customers.read");
   const query = (await searchParams).q;
   const search = (typeof query === "string" ? query : "").trim();
-  const customers = await listMerchantCustomers(auth.merchantId!, search);
+
+  if (!auth.merchantId) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Customers"
+          description="Everyone enrolled in this program with their balance, tier and recency."
+        />
+        <EmptyState
+          icon={Building2Icon}
+          title="No active workspace"
+          description="Customers belong to a business workspace. Pick the workspace you're working in — preview contexts and accounts without an active membership land here too."
+          action={
+            <Button render={<Link href="/choose-merchant" />}>
+              Choose a workspace
+            </Button>
+          }
+        />
+      </PageContainer>
+    );
+  }
+
+  const merchantId = auth.merchantId;
+  const customers = await listMerchantCustomers(merchantId, search);
   const total = search
-    ? (await listMerchantCustomers(auth.merchantId!)).length
+    ? (await listMerchantCustomers(merchantId)).length
     : customers.length;
 
   const columns: DataTableColumn<any>[] = [

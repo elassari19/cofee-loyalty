@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Building2Icon } from "lucide-react";
 
 import { can, requirePageAccess } from "@/auth/guard";
 import { getDb } from "@/db/connection";
@@ -19,6 +21,7 @@ import { FilterSelect } from "@/components/patterns/filter-select";
 import { PageContainer, PageHeader } from "@/components/patterns/page-header";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { EmptyState } from "@/components/patterns/states";
+import { Button } from "@/components/ui/button";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
 import { AdjustBalance } from "./adjust-balance";
@@ -68,8 +71,14 @@ export default async function TransactionsPage({
           description="The append-only loyalty ledger: earns, redemptions and manual adjustments."
         />
         <EmptyState
+          icon={Building2Icon}
           title="No active workspace"
-          description="Transaction history belongs to a business workspace. Pick the workspace you're working in."
+          description="Transaction history belongs to a business workspace. Pick the workspace you're working in — preview contexts and accounts without an active membership land here too."
+          action={
+            <Button render={<Link href="/choose-merchant" />}>
+              Choose a workspace
+            </Button>
+          }
         />
       </PageContainer>
     );
